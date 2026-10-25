@@ -1,0 +1,6 @@
+{
+  "name": "Feynma Library & Feynman Studio",
+  "description": "Feynman technique synthesis engine, interactive voice probe diagnostics, intuitive analogies, and concept mastery library.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

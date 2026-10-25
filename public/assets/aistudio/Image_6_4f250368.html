@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Feynman Diagnostic - Quantum Decoherence</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Fonts: Newsreader & Plus Jakarta Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS with Container Queries and Forms -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "secondary": "#9d431b",
+            "outline-variant": "#c5c5d1",
+            "on-primary": "#ffffff",
+            "surface": "#fcf9f3",
+            "background": "#fcf9f3",
+            "on-tertiary": "#ffffff",
+            "primary-fixed-dim": "#b6c4ff",
+            "on-secondary": "#ffffff",
+            "primary-container": "#1b2f6c",
+            "on-tertiary-fixed": "#002111",
+            "on-background": "#1c1c18",
+            "outline": "#757681",
+            "error": "#ba1a1a",
+            "error-container": "#ffdad6",
+            "on-secondary-fixed-variant": "#7e2c04",
+            "on-secondary-container": "#732600",
+            "tertiary-fixed-dim": "#a0d2b0",
+            "tertiary-container": "#083b23",
+            "surface-dim": "#dcdad4",
+            "on-primary-fixed-variant": "#304381",
+            "surface-bright": "#fcf9f3",
+            "surface-container-highest": "#e5e2dc",
+            "primary-fixed": "#dce1ff",
+            "surface-container-high": "#ebe8e2",
+            "on-error": "#ffffff",
+            "surface-container": "#f0eee8",
+            "surface-container-lowest": "#ffffff",
+            "surface-variant": "#e5e2dc",
+            "tertiary": "#002412",
+            "surface-container-low": "#f6f3ed",
+            "tertiary-fixed": "#bbeecb",
+            "inverse-on-surface": "#f3f0ea",
+            "inverse-primary": "#b6c4ff",
+            "primary": "#001855",
+            "on-tertiary-container": "#76a687",
+            "on-surface": "#1c1c18",
+            "on-secondary-fixed": "#370e00",
+            "on-primary-container": "#8799dd",
+            "secondary-fixed-dim": "#ffb599",
+            "on-tertiary-fixed-variant": "#214f36",
+            "secondary-container": "#fe8c5e",
+            "on-error-container": "#93000a",
+            "secondary-fixed": "#ffdbce",
+            "inverse-surface": "#31312d",
+            "surface-tint": "#495b9a",
+            "on-surface-variant": "#454650",
+            "on-primary-fixed": "#00164f"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-sm": "0.5rem",
+            "space-md": "1rem",
+            "gutter": "1rem",
+            "margin": "1.25rem",
+            "space-xl": "2.25rem",
+            "space-xs": "0.25rem",
+            "margin-mobile": "1rem",
+            "gutter-mobile": "0.75rem",
+            "space-lg": "1.5rem"
+          },
+          "fontFamily": {
+            "body-md": ["Plus Jakarta Sans"],
+            "body-lg": ["Newsreader"],
+            "label-lg": ["Plus Jakarta Sans"],
+            "headline-lg": ["Newsreader"],
+            "label-md": ["Plus Jakarta Sans"],
+            "headline-sm": ["Newsreader"],
+            "label-sm": ["Plus Jakarta Sans"],
+            "body-sm": ["Plus Jakarta Sans"],
+            "display": ["Newsreader"],
+            "headline-md": ["Newsreader"]
+          },
+          "fontSize": {
+            "body-md": ["15px", { "lineHeight": "23px", "letterSpacing": "-0.005em", "fontWeight": "400" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "headline-lg": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.015em", "fontWeight": "500" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+            "headline-sm": ["18px", { "lineHeight": "26px", "fontWeight": "600" }],
+            "label-sm": ["10px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "700" }],
+            "body-sm": ["13px", { "lineHeight": "19px", "fontWeight": "400" }],
+            "display": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "500" }],
+            "headline-md": ["22px", { "lineHeight": "30px", "letterSpacing": "-0.01em", "fontWeight": "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .hairline-border {
+      border: 1px solid #E2DED4;
+    }
+    .recessed-gap-card {
+      background-color: rgba(194, 94, 52, 0.05);
+      border: 1px dashed #C25E34;
+    }
+    .prereq-gap-card {
+      background-color: #FFFFFF;
+      border: 1px solid #E2DED4;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface antialiased min-h-screen selection:bg-primary-fixed selection:text-primary pb-32">
+<!-- TOP APP BAR (from Shared Component JSON: Quantum Decoherence, arrow_back, visibility_off) -->
+<header class="bg-surface/90 dark:bg-surface-container-lowest/90 backdrop-blur-md fixed top-0 left-0 w-full z-40 flex items-center justify-between px-space-md py-space-sm shadow-sm transition-colors duration-150">
+<div class="flex items-center gap-space-sm">
+<button aria-label="Back" class="w-9 h-9 rounded-full flex items-center justify-center text-primary dark:text-primary-fixed hover:bg-surface-container-high dark:hover:bg-surface-container hover:text-on-surface transition-transform active:scale-95">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-secondary font-bold">Feynman Diagnostic</span>
+<span class="text-outline-variant text-[10px]">/</span>
+<span class="font-label-md text-label-md text-on-surface-variant font-medium">Steps 3 &amp; 4</span>
+</div>
+<h1 class="font-headline-sm text-headline-sm font-semibold text-primary dark:text-primary-fixed leading-tight">Quantum Decoherence</h1>
+</div>
+</div>
+<div class="flex items-center gap-1">
+<button aria-label="Share" class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-transform active:scale-95" title="Export or Share Summary">
+<span class="material-symbols-outlined" data-icon="share">share</span>
+</button>
+<button aria-label="Toggle Blind Mode" class="w-9 h-9 rounded-full flex items-center justify-center text-primary dark:text-primary-fixed hover:bg-surface-container-high hover:text-on-surface transition-transform active:scale-95">
+<span class="material-symbols-outlined" data-icon="visibility_off">visibility_off</span>
+</button>
+</div>
+</header>
+<!-- MAIN SCROLLABLE CONTENT CANVAS -->
+<main class="max-w-2xl mx-auto px-margin-mobile pt-20 space-y-space-lg">
+<!-- STEP PROGRESSION BADGES -->
+<div class="flex items-center justify-between pt-2">
+<div class="flex items-center gap-1.5">
+<span class="px-2 py-0.5 rounded-full bg-surface-container text-outline text-[11px] font-label-md font-semibold">1. Definition</span>
+<span class="text-outline-variant text-xs">→</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container text-outline text-[11px] font-label-md font-semibold">2. Teach</span>
+<span class="text-outline-variant text-xs">→</span>
+<span class="px-2.5 py-0.5 rounded-full bg-secondary-container/30 text-secondary text-[11px] font-label-md font-bold ring-1 ring-secondary/20">3. Diagnostic &amp; Gaps</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline tracking-wider uppercase">Session #4</span>
+</div>
+<!-- MASTERY SCORE HEADER (Bento Ring Anchor) -->
+<section class="bg-surface-container-lowest rounded-xl hairline-border p-5 shadow-[0px_2px_8px_rgba(24,24,27,0.04)]">
+<div class="flex items-center gap-5">
+<!-- Circular Mastery Metric Ring -->
+<div class="relative w-24 h-24 flex-shrink-0 flex items-center justify-center">
+<svg class="w-full h-full -rotate-90" viewbox="0 0 100 100">
+<!-- Background Track -->
+<circle cx="50" cy="50" fill="transparent" r="40" stroke="#EFECE5" stroke-width="7"></circle>
+<!-- Active Score Arc (78%) -->
+<circle cx="50" cy="50" fill="transparent" r="40" stroke="#1B2F6C" stroke-dasharray="251.2" stroke-dashoffset="55.26" stroke-linecap="round" stroke-width="7"></circle>
+<!-- Alert gap marker portion -->
+<circle class="opacity-90" cx="50" cy="50" fill="transparent" r="40" stroke="#C25E34" stroke-dasharray="251.2" stroke-dashoffset="232" stroke-linecap="round" stroke-width="7"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+<span class="font-headline-md text-headline-md font-bold text-primary leading-none">78%</span>
+<span class="font-label-sm text-[9px] uppercase tracking-wider text-outline font-semibold mt-0.5">Clarity</span>
+</div>
+</div>
+<!-- Metric Details & Contextual Diagnosis -->
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-2 mb-1">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary/10 text-secondary font-label-sm text-label-sm uppercase font-bold">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
+              Attention Required
+            </span>
+</div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold tracking-tight">Conceptual Clarity Gaps</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1 leading-snug">
+<strong class="font-semibold text-secondary">2 Jargon Crutches</strong> identified • <strong class="font-semibold text-on-surface">1 Missing Prerequisite</strong>. Your explanation is fluent, but glosses over foundational micro-mechanisms.
+          </p>
+</div>
+</div>
+<!-- Quick Audio Waveform Footprint -->
+<div class="mt-4 pt-3.5 border-t border-surface-variant flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="graphic_eq">graphic_eq</span>
+<span class="font-label-md text-label-md text-on-surface font-medium">Recorded Explanation (02:41)</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-3.5 bg-primary rounded-full"></span>
+<span class="w-1.5 h-5 bg-primary rounded-full"></span>
+<span class="w-1.5 h-2 bg-primary rounded-full"></span>
+<span class="w-1.5 h-6 bg-secondary rounded-full" title="Jargon flagged at 01:14"></span>
+<span class="w-1.5 h-4 bg-primary rounded-full"></span>
+<span class="w-1.5 h-3 bg-secondary rounded-full" title="Gap flagged at 01:48"></span>
+<span class="w-1.5 h-5 bg-primary rounded-full"></span>
+<span class="w-1.5 h-2 bg-surface-dim rounded-full"></span>
+</div>
+</div>
+</section>
+<!-- SECTION 1: IDENTIFIED KNOWLEDGE GAPS -->
+<section class="space-y-3.5">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<h3 class="font-headline-sm text-headline-sm font-semibold text-on-surface">Step 3 • Identified Knowledge Gaps</h3>
+</div>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline">Targeted Surgery</span>
+</div>
+<!-- Card A: Critical Knowledge Gap (Recessed terracotta style) -->
+<article class="recessed-gap-card rounded-xl p-4 transition-all duration-150 relative">
+<div class="flex items-start justify-between gap-3">
+<div class="flex items-center gap-2">
+<span class="w-6 h-6 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-label-sm text-[11px] font-bold">A</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-secondary font-bold">Critical Intuition Gap</span>
+</div>
+<span class="font-label-sm text-[10px] text-outline font-semibold">Flagged at 01:14</span>
+</div>
+<div class="mt-2.5 space-y-1.5">
+<p class="font-body-md text-body-md text-on-surface font-medium leading-relaxed">
+            You relied on the phrase <span class="bg-secondary/15 text-secondary px-1.5 py-0.5 rounded font-mono text-[13px] font-semibold underline decoration-secondary decoration-dashed">"measurement apparatus"</span> without explaining how macroscopic interaction causes irreversible phase loss.
+          </p>
+<p class="font-body-sm text-body-sm text-on-surface-variant italic">
+            Feynman warning: Using a textbook label hides the fact that the detector is simply another quantum system with $10^{23}$ chaotic degrees of freedom.
+          </p>
+</div>
+<!-- Action Pill for Card A -->
+<div class="mt-4 flex items-center justify-between pt-3 border-t border-secondary/20">
+<div class="flex items-center gap-1.5 text-secondary text-xs font-label-md">
+<span class="material-symbols-outlined text-[16px]" data-icon="timer">timer</span>
+<span>Micro-Drill recommended</span>
+</div>
+<button class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-secondary text-on-secondary font-label-md text-label-md font-semibold hover:bg-secondary/90 active:scale-95 transition-all shadow-sm">
+<span class="material-symbols-outlined text-[16px]" data-icon="mic">mic</span>
+<span>Re-explain this slice (30s)</span>
+</button>
+</div>
+</article>
+<!-- Card B: Prerequisite Notice (Ivory Hairline style) -->
+<article class="prereq-gap-card rounded-xl p-4 transition-all duration-150 shadow-[0px_2px_8px_rgba(24,24,27,0.03)] border-l-4 border-l-primary">
+<div class="flex items-start justify-between gap-3">
+<div class="flex items-center gap-2">
+<span class="w-6 h-6 rounded-full bg-primary-container text-on-primary flex items-center justify-center font-label-sm text-[11px] font-bold">B</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-primary font-bold">Prerequisite Link Missing</span>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-surface-container font-label-sm text-[10px] text-on-surface-variant">Formal Rigor</span>
+</div>
+<div class="mt-2.5 space-y-1">
+<p class="font-body-md text-body-md text-on-surface leading-relaxed">
+            Missing link: <strong class="font-semibold text-primary">Density matrix off-diagonal elements decay</strong> ($ \rho_{ij} \to 0 $).
+          </p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            You described the disappearance of interference fringes, but did not connect it to the mathematical leakage of quantum coherence into thermal environmental entanglements.
+          </p>
+</div>
+<div class="mt-3.5 pt-3 border-t border-surface-container flex items-center justify-between">
+<button class="text-primary hover:text-primary-container font-label-md text-label-md font-semibold inline-flex items-center gap-1 hover:underline">
+<span class="material-symbols-outlined text-[16px]" data-icon="menu_book">menu_book</span>
+<span>View 1-Paragraph Math Refresher</span>
+</button>
+<button class="w-7 h-7 rounded-full flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container">
+<span class="material-symbols-outlined text-[18px]" data-icon="bookmark_add">bookmark_add</span>
+</button>
+</div>
+</article>
+</section>
+<!-- SECTION 2: AI INTUITIVE ANALOGY GENERATOR -->
+<section class="space-y-3.5">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-tertiary-container"></span>
+<h3 class="font-headline-sm text-headline-sm font-semibold text-on-surface">Step 4 • AI Intuitive Analogy Generator</h3>
+</div>
+<span class="inline-flex items-center gap-1 font-label-sm text-[10px] text-tertiary-container font-bold bg-tertiary-fixed/40 px-2 py-0.5 rounded-full">
+<span class="material-symbols-outlined text-[13px]" data-icon="auto_awesome">auto_awesome</span>
+          Synthesized
+        </span>
+</div>
+<!-- Feature Analogy Card -->
+<article class="bg-surface-container-lowest rounded-xl hairline-border p-5 shadow-[0px_2px_8px_rgba(24,24,27,0.04)] relative overflow-hidden">
+<div class="flex items-start justify-between">
+<div class="space-y-0.5">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-secondary font-bold">Mental Model Replacement</span>
+<h4 class="font-headline-md text-headline-md font-bold text-primary italic">The Coffee Cup in a Stadium Analogy</h4>
+</div>
+<div class="p-2 rounded-lg bg-surface-container text-primary">
+<span class="material-symbols-outlined text-[24px]" data-icon="psychology_alt">psychology_alt</span>
+</div>
+</div>
+<!-- Narrative Quote -->
+<blockquote class="my-3.5 pl-3.5 border-l-2 border-secondary bg-surface-container-low/60 py-2.5 pr-3 rounded-r-lg">
+<p class="font-body-lg text-body-lg text-on-surface italic leading-relaxed">
+            “Think of a synchronized dance troupe in an empty gym (pure state). Now open the doors to 50,000 shouting fans tossing confetti. The dancers are still dancing, but environmental noise makes collective sync invisible.”
+          </p>
+</blockquote>
+<!-- Schematic / Diagram Interactive Preview Container -->
+<div class="mt-4 bg-surface-container-low rounded-lg p-3.5 hairline-border space-y-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-outline text-[18px]" data-icon="schema">schema</span>
+<span class="font-label-md text-label-md font-semibold text-on-surface">Visual Intuition Schematic</span>
+</div>
+<!-- Toggle Component: Vector Diagram vs Flowchart -->
+<div class="inline-flex p-0.5 rounded-lg bg-surface-container hairline-border text-xs" role="tablist">
+<button class="px-2.5 py-1 rounded font-label-sm text-[11px] font-semibold bg-surface-container-lowest text-primary shadow-sm transition-all" id="btn-vector" onclick="switchDiagram('vector')">
+                Vector Diagram
+              </button>
+<button class="px-2.5 py-1 rounded font-label-sm text-[11px] font-medium text-outline hover:text-on-surface transition-all" id="btn-flowchart" onclick="switchDiagram('flowchart')">
+                Generate Flowchart
+              </button>
+</div>
+</div>
+<!-- Vector Diagram View (Default Active) -->
+<div class="block" id="view-vector">
+<div class="w-full h-32 rounded bg-surface-container-lowest flex items-center justify-center p-3 relative overflow-hidden hairline-border">
+<!-- Visualized SVG Vector State Collapse -->
+<svg class="w-full h-full max-w-sm" fill="none" viewbox="0 0 320 80">
+<!-- Coherent Phase (Left) -->
+<g transform="translate(10, 10)">
+<circle cx="30" cy="30" fill="#F0EEE8" fill-opacity="0.4" r="26" stroke="#1B2F6C" stroke-dasharray="2 2" stroke-width="1.5"></circle>
+<!-- Pure in-phase vectors -->
+<line stroke="#1B2F6C" stroke-linecap="round" stroke-width="2.5" x1="30" x2="30" y1="30" y2="8"></line>
+<line stroke="#1B2F6C" stroke-linecap="round" stroke-width="2.5" x1="30" x2="48" y1="30" y2="18"></line>
+<text fill="#1B2F6C" font-family="Plus Jakarta Sans" font-size="9" font-weight="600" text-anchor="middle" x="30" y="70">Synchronized (|ψ⟩)</text>
+</g>
+<!-- Environmental Interaction Arrow -->
+<g transform="translate(100, 32)">
+<path d="M 5 8 L 45 8" marker-end="url(#arrow)" stroke="#C25E34" stroke-linecap="round" stroke-width="1.5"></path>
+<text fill="#C25E34" font-family="Plus Jakarta Sans" font-size="8" font-weight="700" text-anchor="middle" x="25" y="-2">10²³ Photons</text>
+<circle cx="20" cy="8" fill="#C25E34" r="1.5"></circle>
+<circle cx="32" cy="4" fill="#C25E34" r="1"></circle>
+<circle cx="12" cy="14" fill="#C25E34" r="1"></circle>
+</g>
+<!-- Dephased / Decohered State (Right) -->
+<g transform="translate(170, 10)">
+<circle cx="45" cy="30" fill="#FFFFFF" r="26" stroke="#c5c5d1" stroke-width="1.5"></circle>
+<!-- Scrambled phases -->
+<line stroke="#9d431b" stroke-linecap="round" stroke-width="1.5" x1="45" x2="60" y1="30" y2="15"></line>
+<line stroke="#757681" stroke-linecap="round" stroke-width="1.5" x1="45" x2="30" y1="30" y2="46"></line>
+<line stroke="#c5c5d1" stroke-linecap="round" stroke-width="1.5" x1="45" x2="25" y1="30" y2="20"></line>
+<line stroke="#454650" stroke-linecap="round" stroke-width="1.5" x1="45" x2="58" y1="30" y2="42"></line>
+<text fill="#757681" font-family="Plus Jakarta Sans" font-size="9" font-weight="600" text-anchor="middle" x="45" y="70">Phase Randomization</text>
+</g>
+</svg>
+</div>
+<p class="font-body-sm text-[12px] text-outline mt-2 text-center">
+              Phase angles scatter into environmental degrees of freedom without energy dissipation.
+            </p>
+</div>
+<!-- Flowchart View (Hidden by default) -->
+<div class="hidden" id="view-flowchart">
+<div class="w-full py-3 px-2 rounded bg-surface-container-lowest hairline-border">
+<div class="flex flex-col gap-2 font-label-sm text-xs">
+<div class="flex items-center gap-2">
+<span class="w-5 h-5 rounded bg-primary-container text-on-primary flex items-center justify-center font-bold text-[10px]">1</span>
+<span class="text-on-surface font-semibold">Isolated System:</span>
+<span class="text-outline">Coherent superposition maintained</span>
+</div>
+<div class="pl-2 border-l border-outline-variant ml-2.5 text-secondary text-[11px] flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]" data-icon="south">south</span>
+<span>Unavoidable environmental contact (air, thermal radiation)</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-5 h-5 rounded bg-secondary text-on-secondary flex items-center justify-center font-bold text-[10px]">2</span>
+<span class="text-on-surface font-semibold">Quantum Entanglement:</span>
+<span class="text-outline">System entangles with environment</span>
+</div>
+<div class="pl-2 border-l border-outline-variant ml-2.5 text-secondary text-[11px] flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]" data-icon="south">south</span>
+<span>Tracing out environmental states</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-5 h-5 rounded bg-surface-dim text-on-surface flex items-center justify-center font-bold text-[10px]">3</span>
+<span class="text-on-surface font-semibold">Classical Appearance:</span>
+<span class="text-outline">Density matrix appears diagonal (Statistical mixture)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Quick Analogy Adaptation Feedback -->
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center gap-1 text-outline font-label-sm text-[11px]">
+<span>Did this analogy clarify the gap?</span>
+</div>
+<div class="flex items-center gap-1.5">
+<button class="px-2 py-0.5 rounded bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-xs inline-flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="thumb_up">thumb_up</span>
+<span>Yes</span>
+</button>
+<button class="px-2 py-0.5 rounded bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-xs inline-flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="restart_alt">restart_alt</span>
+<span>Alternate</span>
+</button>
+</div>
+</div>
+</div>
+</article>
+</section>
+<!-- SECTION 3: ONE-CLICK REFINEMENT LOOP -->
+<section class="space-y-3 pt-1">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<h3 class="font-headline-sm text-headline-sm font-semibold text-on-surface">Section 3 • Refinement Loop</h3>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+<!-- Retest Voice Button (Primary Action) -->
+<button class="h-12 px-4 rounded-lg bg-primary-container text-on-primary font-label-lg text-label-lg flex items-center justify-center gap-2 hover:bg-primary transition-all active:scale-[0.98] shadow-sm group">
+<span class="material-symbols-outlined text-[20px] text-secondary-fixed transition-transform group-hover:scale-110" data-icon="mic">mic</span>
+<span class="font-semibold">Retest Voice Explanation</span>
+</button>
+<!-- Spaced Repetition Queue Button -->
+<button class="h-12 px-4 rounded-lg bg-surface-container-lowest hairline-border text-on-surface font-label-lg text-label-lg flex items-center justify-center gap-2 hover:bg-surface-container hover:border-outline-variant transition-all active:scale-[0.98]">
+<span class="material-symbols-outlined text-[20px] text-primary" data-icon="save">save</span>
+<span class="font-semibold">Add to Review Queue (Anki)</span>
+</button>
+</div>
+<!-- Quick Guidance Tooltip -->
+<p class="font-body-sm text-[12px] text-outline text-center pt-1">
+        Feynman cycle: Teaching again immediately after seeing the analogy increases long-term retention by 3.4×.
+      </p>
+</section>
+</main>
+<!-- BOTTOM NAVBAR (from Shared Components JSON: Library, Explain, Diagrams, Review) -->
+<!-- Active tab selection logic: "Review" represents the Diagnostic & Self-Assessment phase (Feynman steps 3/4) -->
+<nav class="bg-surface/95 dark:bg-surface-container-lowest/95 backdrop-blur-md fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-gutter-mobile py-space-xs pb-safe shadow-[0px_-4px_16px_rgba(24,24,27,0.04)]">
+<!-- Item 1: Library (Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline px-space-sm py-space-xs hover:text-primary dark:hover:text-primary-fixed transition-colors duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined text-[22px]" data-icon="local_library">local_library</span>
+<span class="font-label-sm text-label-sm mt-0.5">Library</span>
+</a>
+<!-- Item 2: Explain (Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline px-space-sm py-space-xs hover:text-primary dark:hover:text-primary-fixed transition-colors duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined text-[22px]" data-icon="mic">mic</span>
+<span class="font-label-sm text-label-sm mt-0.5">Explain</span>
+</a>
+<!-- Item 3: Diagrams (Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline px-space-sm py-space-xs hover:text-primary dark:hover:text-primary-fixed transition-colors duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined text-[22px]" data-icon="account_tree">account_tree</span>
+<span class="font-label-sm text-label-sm mt-0.5">Diagrams</span>
+</a>
+<!-- Item 4: Review (ACTIVE - Diagnostic / Feynman Gaps & Review) -->
+<a class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed font-semibold px-space-sm py-space-xs active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined text-[22px]" data-icon="psychology" data-weight="fill" style="font-variation-settings: 'FILL' 1;">psychology</span>
+<span class="font-label-sm text-label-sm mt-0.5">Review</span>
+</a>
+</nav>
+<!-- Interactive Script for Schematic View Toggle -->
+<script>
+    function switchDiagram(type) {
+      const btnVector = document.getElementById('btn-vector');
+      const btnFlowchart = document.getElementById('btn-flowchart');
+      const viewVector = document.getElementById('view-vector');
+      const viewFlowchart = document.getElementById('view-flowchart');
+
+      if (type === 'vector') {
+        viewVector.classList.remove('hidden');
+        viewVector.classList.add('block');
+        viewFlowchart.classList.add('hidden');
+        viewFlowchart.classList.remove('block');
+
+        btnVector.className = 'px-2.5 py-1 rounded font-label-sm text-[11px] font-semibold bg-surface-container-lowest text-primary shadow-sm transition-all';
+        btnFlowchart.className = 'px-2.5 py-1 rounded font-label-sm text-[11px] font-medium text-outline hover:text-on-surface transition-all';
+      } else {
+        viewFlowchart.classList.remove('hidden');
+        viewFlowchart.classList.add('block');
+        viewVector.classList.add('hidden');
+        viewVector.classList.remove('block');
+
+        btnFlowchart.className = 'px-2.5 py-1 rounded font-label-sm text-[11px] font-semibold bg-surface-container-lowest text-primary shadow-sm transition-all';
+        btnVector.className = 'px-2.5 py-1 rounded font-label-sm text-[11px] font-medium text-outline hover:text-on-surface transition-all';
+      }
+    }
+  </script>
+</body></html>

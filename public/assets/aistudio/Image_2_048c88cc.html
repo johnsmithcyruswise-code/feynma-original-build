@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Feynma Library — Synthesis Hub</title>
+<!-- Material Symbols & Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "secondary": "#9d431b",
+            "outline-variant": "#c5c5d1",
+            "on-primary": "#ffffff",
+            "surface": "#fcf9f3",
+            "background": "#fcf9f3",
+            "on-tertiary": "#ffffff",
+            "primary-fixed-dim": "#b6c4ff",
+            "on-secondary": "#ffffff",
+            "primary-container": "#1b2f6c",
+            "on-tertiary-fixed": "#002111",
+            "on-background": "#1c1c18",
+            "outline": "#757681",
+            "error": "#ba1a1a",
+            "error-container": "#ffdad6",
+            "on-secondary-fixed-variant": "#7e2c04",
+            "on-secondary-container": "#732600",
+            "tertiary-fixed-dim": "#a0d2b0",
+            "tertiary-container": "#083b23",
+            "surface-dim": "#dcdad4",
+            "on-primary-fixed-variant": "#304381",
+            "surface-bright": "#fcf9f3",
+            "surface-container-highest": "#e5e2dc",
+            "primary-fixed": "#dce1ff",
+            "surface-container-high": "#ebe8e2",
+            "on-error": "#ffffff",
+            "surface-container": "#f0eee8",
+            "surface-container-lowest": "#ffffff",
+            "surface-variant": "#e5e2dc",
+            "tertiary": "#002412",
+            "surface-container-low": "#f6f3ed",
+            "tertiary-fixed": "#bbeecb",
+            "inverse-on-surface": "#f3f0ea",
+            "inverse-primary": "#b6c4ff",
+            "primary": "#001855",
+            "on-tertiary-container": "#76a687",
+            "on-surface": "#1c1c18",
+            "on-secondary-fixed": "#370e00",
+            "on-primary-container": "#8799dd",
+            "secondary-fixed-dim": "#ffb599",
+            "on-tertiary-fixed-variant": "#214f36",
+            "secondary-container": "#fe8c5e",
+            "on-error-container": "#93000a",
+            "secondary-fixed": "#ffdbce",
+            "inverse-surface": "#31312d",
+            "surface-tint": "#495b9a",
+            "on-surface-variant": "#454650",
+            "on-primary-fixed": "#00164f"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-sm": "0.5rem",
+            "space-md": "1rem",
+            "gutter": "1rem",
+            "margin": "1.25rem",
+            "space-xl": "2.25rem",
+            "space-xs": "0.25rem",
+            "margin-mobile": "1rem",
+            "gutter-mobile": "0.75rem",
+            "space-lg": "1.5rem"
+          },
+          "fontFamily": {
+            "body-md": ["Plus Jakarta Sans"],
+            "body-lg": ["Newsreader"],
+            "label-lg": ["Plus Jakarta Sans"],
+            "headline-lg": ["Newsreader"],
+            "label-md": ["Plus Jakarta Sans"],
+            "headline-sm": ["Newsreader"],
+            "label-sm": ["Plus Jakarta Sans"],
+            "body-sm": ["Plus Jakarta Sans"],
+            "display": ["Newsreader"],
+            "headline-md": ["Newsreader"]
+          },
+          "fontSize": {
+            "body-md": ["15px", { "lineHeight": "23px", "letterSpacing": "-0.005em", "fontWeight": "400" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "headline-lg": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.015em", "fontWeight": "500" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+            "headline-sm": ["18px", { "lineHeight": "26px", "fontWeight": "600" }],
+            "label-sm": ["10px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "700" }],
+            "body-sm": ["13px", { "lineHeight": "19px", "fontWeight": "400" }],
+            "display": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "500" }],
+            "headline-md": ["22px", { "lineHeight": "30px", "letterSpacing": "-0.01em", "fontWeight": "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    /* Hairline paper aesthetics */
+    .hairline-border {
+      border: 1px solid #E2DED4;
+    }
+    .hairline-dashed {
+      border: 1px dashed rgba(157, 67, 27, 0.35);
+    }
+    .custom-scroll::-webkit-scrollbar {
+      display: none;
+    }
+    .custom-scroll {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface antialiased min-h-screen pb-28 selection:bg-primary-fixed selection:text-primary">
+<!-- TOP APP BAR -->
+<header class="fixed top-0 left-0 w-full z-40 flex items-center justify-between px-space-md py-space-sm bg-surface/90 backdrop-blur-md border-b border-outline-variant/30">
+<div class="flex items-center gap-space-sm">
+<button class="w-9 h-9 flex items-center justify-center rounded-lg text-primary hover:bg-surface-container-high transition-transform active:scale-95">
+<span class="material-symbols-outlined text-[20px]" data-icon="local_library">local_library</span>
+</button>
+<div>
+<h1 class="text-headline-sm font-headline-sm font-bold tracking-tight text-primary">Feynma Library</h1>
+<p class="text-label-sm font-label-sm text-outline tracking-wider -mt-0.5">SYNTHESIS ENGINE &amp; ARCHIVE</p>
+</div>
+</div>
+<div class="flex items-center gap-space-xs">
+<button aria-label="Synthesis History" class="w-9 h-9 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-transform active:scale-95">
+<span class="material-symbols-outlined text-[20px]" data-icon="history_edu">history_edu</span>
+</button>
+<button aria-label="Settings" class="w-9 h-9 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-transform active:scale-95">
+<span class="material-symbols-outlined text-[20px]" data-icon="tune">tune</span>
+</button>
+</div>
+</header>
+<!-- MAIN SCROLLABLE CONTENT CANVAS -->
+<main class="pt-20 px-margin-mobile md:px-margin max-w-2xl mx-auto space-y-space-lg">
+<!-- SEARCH & DISCOVERY BAR -->
+<section class="space-y-space-sm">
+<div class="flex items-center gap-space-sm">
+<div class="relative flex-1 flex items-center bg-surface-container-lowest rounded-xl hairline-border px-space-md py-2.5 shadow-[0px_2px_8px_rgba(24,24,27,0.03)] focus-within:border-primary-container transition-all">
+<span class="material-symbols-outlined text-outline text-[20px] mr-2.5" data-icon="search">search</span>
+<input class="w-full bg-transparent border-none p-0 text-body-md font-body-md text-on-surface placeholder:text-outline/70 placeholder:font-body-lg placeholder:italic focus:ring-0 outline-none" placeholder="Search concepts, books, or papers..." type="text"/>
+<kbd class="hidden sm:inline-flex items-center px-1.5 py-0.5 text-label-sm font-label-sm text-outline bg-surface-container rounded border border-outline-variant/40">⌘K</kbd>
+</div>
+<button aria-label="Filter documents" class="h-11 px-3.5 flex items-center justify-center bg-surface-container-lowest hairline-border rounded-xl text-on-surface-variant hover:text-primary hover:bg-surface-container-low transition-all active:scale-95 shadow-[0px_2px_8px_rgba(24,24,27,0.03)]">
+<span class="material-symbols-outlined text-[20px]" data-icon="filter_list">filter_list</span>
+</button>
+</div>
+<!-- Quick Filter Tabs -->
+<div class="flex items-center gap-space-xs overflow-x-auto custom-scroll py-1 -mx-margin-mobile px-margin-mobile sm:mx-0 sm:px-0">
+<button class="whitespace-nowrap px-3.5 py-1.5 rounded-full text-label-sm font-label-sm bg-primary text-on-primary shadow-sm transition-transform active:scale-95">
+          All (24)
+        </button>
+<button class="whitespace-nowrap px-3.5 py-1.5 rounded-full text-label-sm font-label-sm bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-colors active:scale-95">
+          In Progress (5)
+        </button>
+<button class="whitespace-nowrap px-3.5 py-1.5 rounded-full text-label-sm font-label-sm bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-colors active:scale-95">
+          Mastered (16)
+        </button>
+<button class="whitespace-nowrap px-3.5 py-1.5 rounded-full text-label-sm font-label-sm bg-secondary/10 text-secondary border border-secondary/20 hover:bg-secondary/15 transition-colors active:scale-95">
+          Needs Simplification (3)
+        </button>
+</div>
+</section>
+<!-- MULTI-DOCUMENT SYNTHESIS HERO CARD -->
+<section class="bg-surface-container-lowest rounded-xl hairline-border p-5 space-y-5 shadow-[0px_2px_12px_rgba(24,24,27,0.04)] relative overflow-hidden">
+<!-- Subtle top tint banner strip -->
+<div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary-container via-secondary to-tertiary-container"></div>
+<div class="flex items-start justify-between">
+<div>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-label-sm font-label-sm tracking-wider uppercase bg-surface-container text-on-surface-variant mb-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
+            Active Multi-Doc Synthesis
+          </span>
+<h2 class="text-headline-md font-headline-md text-primary tracking-tight">Statistical Thermodynamics &amp; Quantum States</h2>
+</div>
+<span class="material-symbols-outlined text-outline-variant text-[24px]" data-icon="auto_stories">auto_stories</span>
+</div>
+<!-- Sources cluster -->
+<div class="bg-surface-container-low rounded-lg p-3 space-y-2 hairline-border">
+<div class="flex items-center justify-between text-label-md font-label-md text-outline">
+<span class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-primary" data-icon="layers">layers</span>
+            3 Indexed Sources
+          </span>
+<span class="text-label-sm font-label-sm text-primary font-semibold">Ready to Teach</span>
+</div>
+<div class="flex flex-wrap gap-1.5 text-body-sm font-body-sm text-on-surface">
+<span class="inline-flex items-center gap-1 bg-surface-container-lowest px-2 py-0.5 rounded hairline-border text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px] text-outline" data-icon="picture_as_pdf">picture_as_pdf</span>
+            Griffith's QM (Ch. 5)
+          </span>
+<span class="inline-flex items-center gap-1 bg-surface-container-lowest px-2 py-0.5 rounded hairline-border text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px] text-outline" data-icon="menu_book">menu_book</span>
+            Susskind: Theoretical Min.
+          </span>
+<span class="inline-flex items-center gap-1 bg-surface-container-lowest px-2 py-0.5 rounded hairline-border text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px] text-outline" data-icon="notes">notes</span>
+            MIT 8.04 Lecture 14 Notes
+          </span>
+</div>
+</div>
+<!-- Ingestion / Action Drop Zone -->
+<div class="hairline-dashed rounded-lg p-4 bg-secondary/5 text-center flex flex-col items-center justify-center gap-2 group cursor-pointer hover:bg-secondary/10 transition-colors">
+<div class="w-9 h-9 rounded-full bg-surface-container-lowest flex items-center justify-center text-secondary shadow-sm hairline-border">
+<span class="material-symbols-outlined text-[20px]" data-icon="cloud_upload">cloud_upload</span>
+</div>
+<div>
+<p class="text-body-md font-body-md font-medium text-on-surface">
+            Drop PDF, EPUB, or ArXiv links to enrich
+          </p>
+<p class="text-label-md font-label-md text-outline">or tap below to incorporate written notes</p>
+</div>
+<div class="flex items-center gap-2 pt-1">
+<button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-lowest hairline-border text-label-md font-label-md text-on-surface hover:text-primary active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[16px]" data-icon="edit_note">edit_note</span>
+            Paste Lecture Notes
+          </button>
+<button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-on-primary text-label-md font-label-md hover:opacity-95 active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[16px]" data-icon="mic">mic</span>
+            Explain Now
+          </button>
+</div>
+</div>
+</section>
+<!-- SECTION TITLE & STUDY DECK COUNTER -->
+<div class="flex items-center justify-between pt-2">
+<div class="flex items-baseline gap-2">
+<h3 class="text-headline-sm font-headline-sm text-on-surface">Concept Decks</h3>
+<span class="text-label-md font-label-md text-outline">4 Active Probes</span>
+</div>
+<button class="text-label-md font-label-md text-primary font-semibold flex items-center gap-0.5 hover:underline">
+<span>Sort by Gap Urgency</span>
+<span class="material-symbols-outlined text-[16px]" data-icon="arrow_drop_down">arrow_drop_down</span>
+</button>
+</div>
+<!-- INDEXED SUBJECT DECK (Bento-refined Academic List) -->
+<div class="space-y-space-md">
+<!-- CARD 1: Quantum Decoherence -->
+<article class="bg-surface-container-lowest rounded-xl hairline-border p-4.5 space-y-3 shadow-[0px_2px_8px_rgba(24,24,27,0.03)] hover:border-outline transition-colors">
+<div class="flex items-start justify-between gap-3">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="text-label-sm font-label-sm text-outline uppercase tracking-wider">Physics</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="text-label-sm font-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px] text-secondary" data-icon="graphic_eq">graphic_eq</span>
+                3 voice tests taken
+              </span>
+</div>
+<h4 class="text-headline-sm font-headline-sm text-primary">Quantum Decoherence</h4>
+</div>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-label-sm font-label-sm bg-secondary/10 text-secondary border border-secondary/20">
+<span class="material-symbols-outlined text-[12px]" data-icon="psychology_alt">psychology_alt</span>
+            Needs Analogy Polish
+          </span>
+</div>
+<p class="text-body-md font-body-md text-on-surface-variant">
+          Phase coherence dissipates into the environment, yielding classical probabilities without physical wave-function collapse.
+        </p>
+<!-- Metrics & Feynman Progress Bar -->
+<div class="pt-1 space-y-1.5">
+<div class="flex justify-between items-center text-label-sm font-label-sm">
+<span class="text-outline">Feynman Clarity Score</span>
+<span class="text-primary font-bold">78%</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary-container rounded-full" style="width: 78%"></div>
+</div>
+</div>
+<!-- Quick Deck Actions -->
+<div class="pt-2 flex items-center justify-between border-t border-outline-variant/30 text-label-md font-label-md">
+<span class="text-outline flex items-center gap-1 font-body-sm text-[13px]">
+<span class="material-symbols-outlined text-[16px] text-secondary" data-icon="flag">flag</span>
+            Child-analogy missing for entropy leak
+          </span>
+<button class="text-primary font-semibold flex items-center gap-0.5 hover:text-primary-container active:scale-95 transition-transform">
+<span>Test Voice</span>
+<span class="material-symbols-outlined text-[16px]" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</article>
+<!-- CARD 2: Gradient Descent & Loss Surfaces (Sage Mastery Accent) -->
+<article class="bg-surface-container-lowest rounded-xl hairline-border p-4.5 space-y-3 shadow-[0px_2px_8px_rgba(24,24,27,0.03)] border-l-4 border-l-tertiary-container hover:border-outline transition-colors">
+<div class="flex items-start justify-between gap-3">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="text-label-sm font-label-sm text-outline uppercase tracking-wider">Machine Learning</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="text-label-sm font-label-sm text-tertiary-container font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]" data-icon="verified">verified</span>
+                Verified Synthesis
+              </span>
+</div>
+<h4 class="text-headline-sm font-headline-sm text-on-surface">Gradient Descent &amp; Loss Surfaces</h4>
+</div>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-label-sm font-label-sm bg-tertiary-fixed/30 text-tertiary-container border border-tertiary-fixed">
+<span class="material-symbols-outlined text-[12px]" data-icon="school">school</span>
+            Mastered (ELI5 Ready)
+          </span>
+</div>
+<!-- Analogy Snippet Callout -->
+<blockquote class="bg-surface-container-low rounded-lg p-3 text-body-lg font-body-lg italic text-on-surface-variant hairline-border">
+          "Walking down a foggy alpine valley blindfolded, using only the tilt beneath your boots to step downhill."
+        </blockquote>
+<div class="pt-1 space-y-1.5">
+<div class="flex justify-between items-center text-label-sm font-label-sm">
+<span class="text-outline">Feynman Clarity Score</span>
+<span class="text-tertiary-container font-bold">94%</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-tertiary-container rounded-full" style="width: 94%"></div>
+</div>
+</div>
+<div class="pt-2 flex items-center justify-between border-t border-outline-variant/30 text-label-md font-label-md">
+<span class="text-outline font-body-sm text-[13px]">Tested across 4 child personas</span>
+<button class="text-on-surface-variant hover:text-primary font-medium flex items-center gap-0.5">
+<span>View Transcript</span>
+<span class="material-symbols-outlined text-[16px]" data-icon="open_in_new">open_in_new</span>
+</button>
+</div>
+</article>
+<!-- CARD 3: Hebbian Plasticity & LTP (Recessed Terracotta Knowledge Gap) -->
+<article class="bg-surface-container-lowest rounded-xl hairline-border p-4.5 space-y-3 shadow-[0px_2px_8px_rgba(24,24,27,0.03)] hover:border-outline transition-colors">
+<div class="flex items-start justify-between gap-3">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="text-label-sm font-label-sm text-outline uppercase tracking-wider">Neuroscience</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="text-label-sm font-label-sm text-secondary font-medium">1 voice attempt</span>
+</div>
+<h4 class="text-headline-sm font-headline-sm text-primary">Hebbian Plasticity &amp; LTP</h4>
+</div>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-label-sm font-label-sm bg-secondary/10 text-secondary border border-secondary/20">
+<span class="material-symbols-outlined text-[12px]" data-icon="warning">warning</span>
+            2 Critical Gaps
+          </span>
+</div>
+<!-- Recessed Knowledge Gap Card Callout -->
+<div class="p-3 bg-secondary/5 rounded-lg hairline-dashed text-body-sm font-body-sm text-on-secondary-container space-y-1">
+<div class="flex items-center gap-1.5 font-semibold text-secondary">
+<span class="material-symbols-outlined text-[16px]" data-icon="search_insights">search_insights</span>
+            Identified Jargon Crutches:
+          </div>
+<p class="text-on-surface-variant pl-5">
+            1. Unexplained NMDA receptor magnesium unblocking.<br/>
+            2. Vague conflation of post-tetanic potentiation with true LTP.
+          </p>
+</div>
+<div class="pt-1 space-y-1.5">
+<div class="flex justify-between items-center text-label-sm font-label-sm">
+<span class="text-outline">Feynman Clarity Score</span>
+<span class="text-secondary font-bold">62%</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-secondary rounded-full" style="width: 62%"></div>
+</div>
+</div>
+<div class="pt-2 flex items-center justify-between border-t border-outline-variant/30 text-label-md font-label-md">
+<span class="text-outline font-body-sm text-[13px]">Target: Simple analogy for non-physicians</span>
+<button class="text-secondary font-semibold flex items-center gap-0.5 hover:underline active:scale-95 transition-transform">
+<span>Fix Gaps</span>
+<span class="material-symbols-outlined text-[16px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</article>
+<!-- CARD 4: Byzantine Fault Tolerance -->
+<article class="bg-surface-container-lowest rounded-xl hairline-border p-4.5 space-y-3 shadow-[0px_2px_8px_rgba(24,24,27,0.03)] hover:border-outline transition-colors">
+<div class="flex items-start justify-between gap-3">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="text-label-sm font-label-sm text-outline uppercase tracking-wider">Distributed Systems</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">L. Lamport (1982)</span>
+</div>
+<h4 class="text-headline-sm font-headline-sm text-primary">Byzantine Fault Tolerance</h4>
+</div>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-label-sm font-label-sm bg-surface-container text-on-surface-variant border border-outline-variant/40">
+<span class="material-symbols-outlined text-[12px]" data-icon="account_tree">account_tree</span>
+            Diagram Ready
+          </span>
+</div>
+<p class="text-body-md font-body-md text-on-surface-variant">
+          Reaching consensus across adversarial networks where nodes can deliberately broadcast contradictory messages.
+        </p>
+<div class="pt-1 space-y-1.5">
+<div class="flex justify-between items-center text-label-sm font-label-sm">
+<span class="text-outline">Feynman Clarity Score</span>
+<span class="text-primary font-bold">88%</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 88%"></div>
+</div>
+</div>
+<div class="pt-2 flex items-center justify-between border-t border-outline-variant/30 text-label-md font-label-md">
+<span class="text-outline font-body-sm text-[13px]">Oral test passed · Mental visual pending</span>
+<button class="text-primary font-semibold flex items-center gap-0.5 hover:text-primary-container active:scale-95 transition-transform">
+<span>Open Diagrammer</span>
+<span class="material-symbols-outlined text-[16px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</article>
+</div>
+</main>
+<!-- FLOATING QUICK ACTION BUTTON (+ New Concept Probe) -->
+<div class="fixed bottom-20 right-4 sm:right-8 z-40">
+<button class="flex items-center gap-2 px-4 py-3 bg-secondary text-on-secondary rounded-full shadow-[0px_4px_16px_rgba(157,67,27,0.35)] hover:bg-secondary/95 active:scale-95 transition-all duration-150">
+<span class="material-symbols-outlined text-[20px]" data-icon="add">add</span>
+<span class="text-label-lg font-label-lg pr-1">New Concept Probe</span>
+</button>
+</div>
+<!-- BOTTOM NAVIGATION BAR (Derived strictly from JSON Shared Components) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-gutter-mobile py-space-xs pb-safe bg-surface/95 backdrop-blur-md border-t border-outline-variant/30">
+<!-- Tab 1: Library (ACTIVE Destination) -->
+<a aria-current="page" class="flex flex-col items-center justify-center text-primary font-semibold px-space-sm py-space-xs transition-transform active:scale-95" href="#">
+<span class="material-symbols-outlined text-[22px]" data-icon="local_library" style="font-variation-settings: 'FILL' 1;">local_library</span>
+<span class="text-label-sm font-label-sm mt-0.5">Library</span>
+</a>
+<!-- Tab 2: Explain -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary px-space-sm py-space-xs transition-colors active:scale-95" href="#">
+<span class="material-symbols-outlined text-[22px]" data-icon="mic">mic</span>
+<span class="text-label-sm font-label-sm mt-0.5">Explain</span>
+</a>
+<!-- Tab 3: Diagrams -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary px-space-sm py-space-xs transition-colors active:scale-95" href="#">
+<span class="material-symbols-outlined text-[22px]" data-icon="account_tree">account_tree</span>
+<span class="text-label-sm font-label-sm mt-0.5">Diagrams</span>
+</a>
+<!-- Tab 4: Review -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary px-space-sm py-space-xs transition-colors active:scale-95" href="#">
+<span class="material-symbols-outlined text-[22px]" data-icon="psychology">psychology</span>
+<span class="text-label-sm font-label-sm mt-0.5">Review</span>
+</a>
+</nav>
+</body></html>

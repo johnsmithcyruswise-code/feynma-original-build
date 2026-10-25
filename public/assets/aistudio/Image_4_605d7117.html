@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Voice Probe: Quantum Decoherence — Feynman Studio</title>
+<!-- Material Symbols & Academic Serif / Sans Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "secondary": "#9d431b",
+            "outline-variant": "#c5c5d1",
+            "on-primary": "#ffffff",
+            "surface": "#fcf9f3",
+            "background": "#fcf9f3",
+            "on-tertiary": "#ffffff",
+            "primary-fixed-dim": "#b6c4ff",
+            "on-secondary": "#ffffff",
+            "primary-container": "#1b2f6c",
+            "on-tertiary-fixed": "#002111",
+            "on-background": "#1c1c18",
+            "outline": "#757681",
+            "error": "#ba1a1a",
+            "error-container": "#ffdad6",
+            "on-secondary-fixed-variant": "#7e2c04",
+            "on-secondary-container": "#732600",
+            "tertiary-fixed-dim": "#a0d2b0",
+            "tertiary-container": "#083b23",
+            "surface-dim": "#dcdad4",
+            "on-primary-fixed-variant": "#304381",
+            "surface-bright": "#fcf9f3",
+            "surface-container-highest": "#e5e2dc",
+            "primary-fixed": "#dce1ff",
+            "surface-container-high": "#ebe8e2",
+            "on-error": "#ffffff",
+            "surface-container": "#f0eee8",
+            "surface-container-lowest": "#ffffff",
+            "surface-variant": "#e5e2dc",
+            "tertiary": "#002412",
+            "surface-container-low": "#f6f3ed",
+            "tertiary-fixed": "#bbeecb",
+            "inverse-on-surface": "#f3f0ea",
+            "inverse-primary": "#b6c4ff",
+            "primary": "#001855",
+            "on-tertiary-container": "#76a687",
+            "on-surface": "#1c1c18",
+            "on-secondary-fixed": "#370e00",
+            "on-primary-container": "#8799dd",
+            "secondary-fixed-dim": "#ffb599",
+            "on-tertiary-fixed-variant": "#214f36",
+            "secondary-container": "#fe8c5e",
+            "on-error-container": "#93000a",
+            "secondary-fixed": "#ffdbce",
+            "inverse-surface": "#31312d",
+            "surface-tint": "#495b9a",
+            "on-surface-variant": "#454650",
+            "on-primary-fixed": "#00164f"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-sm": "0.5rem",
+            "space-md": "1rem",
+            "gutter": "1rem",
+            "margin": "1.25rem",
+            "space-xl": "2.25rem",
+            "space-xs": "0.25rem",
+            "margin-mobile": "1rem",
+            "gutter-mobile": "0.75rem",
+            "space-lg": "1.5rem"
+          },
+          "fontFamily": {
+            "body-md": ["Plus Jakarta Sans"],
+            "body-lg": ["Newsreader"],
+            "label-lg": ["Plus Jakarta Sans"],
+            "headline-lg": ["Newsreader"],
+            "label-md": ["Plus Jakarta Sans"],
+            "headline-sm": ["Newsreader"],
+            "label-sm": ["Plus Jakarta Sans"],
+            "body-sm": ["Plus Jakarta Sans"],
+            "display": ["Newsreader"],
+            "headline-md": ["Newsreader"]
+          },
+          "fontSize": {
+            "body-md": ["15px", { "lineHeight": "23px", "letterSpacing": "-0.005em", "fontWeight": "400" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "headline-lg": ["26px", { "lineHeight": "34px", "letterSpacing": "-0.015em", "fontWeight": "500" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+            "headline-sm": ["18px", { "lineHeight": "26px", "fontWeight": "600" }],
+            "label-sm": ["10px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "700" }],
+            "body-sm": ["13px", { "lineHeight": "19px", "fontWeight": "400" }],
+            "display": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "500" }],
+            "headline-md": ["22px", { "lineHeight": "30px", "letterSpacing": "-0.01em", "fontWeight": "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    
+    @keyframes subtlePulse {
+      0%, 100% { transform: scale(1); opacity: 0.35; }
+      50% { transform: scale(1.18); opacity: 0.15; }
+    }
+    .animate-tactile-ring {
+      animation: subtlePulse 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @keyframes liveBlink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    .cursor-blink {
+      animation: liveBlink 0.9s infinite;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen flex flex-col font-body-md antialiased selection:bg-primary-fixed selection:text-primary">
+<!-- TOP APP BAR (Shared Components JSON execution) -->
+<header class="fixed top-0 left-0 w-full z-40 flex items-center justify-between px-space-md py-space-sm bg-surface/90 dark:bg-surface-container-lowest/90 backdrop-blur-md border-b border-outline-variant/30 dark:border-outline-variant/10">
+<!-- Leading Action -->
+<button class="flex items-center gap-space-xs text-on-surface-variant hover:text-primary transition-colors duration-150 active:scale-95 py-space-xs px-space-xs rounded-lg" title="Back to concept">
+<span class="material-symbols-outlined text-[20px]" data-icon="arrow_back">arrow_back</span>
+<span class="font-label-md text-label-md hidden sm:inline text-on-surface-variant">Concepts</span>
+</button>
+<!-- Center Headline & Context Indicator -->
+<div class="flex flex-col items-center text-center">
+<span class="font-label-sm text-label-sm text-secondary tracking-widest uppercase font-bold">Voice Probe</span>
+<h1 class="font-headline-sm text-headline-sm font-semibold text-primary tracking-tight">Quantum Decoherence</h1>
+</div>
+<!-- Trailing Action / Feynman Mode Status -->
+<div class="flex items-center gap-space-xs">
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container border border-outline-variant/40">
+<span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+<span class="font-label-md text-label-md text-on-surface font-semibold">01:14</span>
+<span class="font-label-sm text-label-sm text-outline">/ 02:00</span>
+</div>
+<button class="p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors active:scale-95" title="Mute/Toggle Focus">
+<span class="material-symbols-outlined text-[20px]" data-icon="visibility_off">visibility_off</span>
+</button>
+</div>
+</header>
+<!-- MAIN CANVAS (Study Session) -->
+<main class="flex-1 w-full max-w-2xl mx-auto px-margin pt-20 pb-36 flex flex-col gap-space-md">
+<!-- Pedagogical Feynman Directive Banner -->
+<section class="bg-surface-container-lowest border border-surface-container-highest rounded-xl p-space-md shadow-[0_2px_8px_rgba(24,24,27,0.03)] flex items-start justify-between gap-space-sm">
+<div class="flex items-start gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-primary shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[20px]" data-icon="psychology">psychology</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline font-bold">Feynman Target</span>
+<span class="inline-flex items-center px-1.5 py-0.5 rounded-full bg-surface-container-high text-primary font-label-sm text-label-sm">Sixth Grade Level</span>
+</div>
+<p class="font-headline-sm text-headline-sm text-primary mt-0.5 font-medium">Explain why quantum state fragility breaks down into everyday reality.</p>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-primary-fixed text-primary font-label-sm text-label-sm shrink-0 font-bold">Rule: Zero Jargon</span>
+</section>
+<!-- LIVE AUDIO WAVEFORM VISUALIZER (Tactile Frequency Scrubber) -->
+<section class="bg-surface-container-lowest border border-surface-container-highest rounded-xl p-space-md shadow-[0_2px_8px_rgba(24,24,27,0.03)]">
+<div class="flex items-center justify-between mb-space-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[18px]" data-icon="mic">mic</span>
+<span class="font-label-md text-label-md text-on-surface font-semibold">Live Acoustic Intake</span>
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm text-outline">Input: 44.1 kHz</span>
+<span class="px-2 py-0.5 rounded-full bg-tertiary-container/10 text-on-tertiary-container font-label-sm text-label-sm font-semibold">Clean Signal</span>
+</div>
+</div>
+<!-- Scrubber track container with responsive frequency bars -->
+<div class="bg-surface-container rounded-lg p-space-sm h-14 flex items-center justify-between gap-[3px] overflow-hidden relative">
+<!-- Frequency bars rendered rhythmically -->
+<span class="w-[3px] h-3 bg-primary-container rounded-full"></span>
+<span class="w-[3px] h-4 bg-primary-container rounded-full"></span>
+<span class="w-[3px] h-6 bg-primary-container rounded-full"></span>
+<span class="w-[3px] h-9 bg-primary-container rounded-full"></span>
+<span class="w-[3px] h-5 bg-primary-container rounded-full"></span>
+<span class="w-[3px] h-7 bg-primary-container rounded-full"></span>
+<span class="w-[3px] h-10 bg-primary-container rounded-full"></span>
+<span class="w-[3px] h-11 bg-primary-container rounded-full"></span>
+<span class="w-[3px] h-8 bg-primary-container rounded-full"></span>
+<span class="w-[3px] h-10 bg-primary-container rounded-full"></span>
+<!-- Marked comprehension gap segment in waveform -->
+<span class="w-[3px] h-12 bg-secondary rounded-full"></span>
+<span class="w-[3px] h-11 bg-secondary rounded-full"></span>
+<span class="w-[3px] h-9 bg-secondary rounded-full"></span>
+<!-- Resuming clean audio bars -->
+<span class="w-[3px] h-7 bg-primary-container rounded-full"></span>
+<span class="w-[3px] h-10 bg-primary-container rounded-full"></span>
+<span class="w-[3px] h-8 bg-primary-container rounded-full"></span>
+<span class="w-[3px] h-6 bg-primary-container rounded-full"></span>
+<span class="w-[3px] h-9 bg-primary-container rounded-full"></span>
+<span class="w-[3px] h-11 bg-primary-container rounded-full"></span>
+<span class="w-[3px] h-10 bg-primary-container rounded-full"></span>
+<span class="w-[3px] h-7 bg-primary-container rounded-full"></span>
+<span class="w-[3px] h-4 bg-primary-container rounded-full"></span>
+<span class="w-[3px] h-8 bg-primary-container rounded-full"></span>
+<!-- Scrub pointer head -->
+<div class="absolute left-[62%] top-1/2 -translate-y-1/2 flex flex-col items-center">
+<div class="w-3.5 h-3.5 rounded-full bg-surface-container-lowest border-2 border-primary-container shadow-sm"></div>
+</div>
+<!-- Unrecorded / ambient bars -->
+<span class="w-[3px] h-5 bg-outline-variant/60 rounded-full"></span>
+<span class="w-[3px] h-4 bg-outline-variant/60 rounded-full"></span>
+<span class="w-[3px] h-6 bg-outline-variant/60 rounded-full"></span>
+<span class="w-[3px] h-3 bg-outline-variant/60 rounded-full"></span>
+<span class="w-[3px] h-5 bg-outline-variant/60 rounded-full"></span>
+<span class="w-[3px] h-4 bg-outline-variant/60 rounded-full"></span>
+<span class="w-[3px] h-2 bg-outline-variant/60 rounded-full"></span>
+<span class="w-[3px] h-4 bg-outline-variant/60 rounded-full"></span>
+<span class="w-[3px] h-3 bg-outline-variant/60 rounded-full"></span>
+<span class="w-[3px] h-2 bg-outline-variant/60 rounded-full"></span>
+</div>
+</section>
+<!-- LIVE REAL-TIME TRANSCRIPTION (Typewriter Card) -->
+<section class="bg-surface-container-lowest border border-surface-container-highest rounded-xl p-space-lg shadow-[0_2px_8px_rgba(24,24,27,0.04)] relative">
+<div class="flex items-center justify-between pb-space-sm border-b border-surface-container mb-space-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-outline text-[16px]" data-icon="edit_note">edit_note</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-bold tracking-wider uppercase">Live Transcription Stream</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline">Speed: 142 wpm</span>
+</div>
+<!-- Real-time transcribed text with inline highlight flags -->
+<div class="font-body-lg text-body-lg text-on-surface leading-relaxed min-h-[120px]">
+<span>So basically, quantum decoherence happens when a tiny quantum particle bumps into gas molecules or light photons. When that occurs, the </span>
+<!-- Flagged jargon span -->
+<span class="relative inline-block bg-secondary-fixed/50 text-secondary border-b border-secondary px-1 py-0.5 rounded font-medium cursor-pointer group">
+          wave function collapse
+          <span class="absolute -top-7 left-1/2 -translate-x-1/2 hidden group-hover:flex bg-inverse-surface text-inverse-on-surface text-label-sm font-label-sm px-2 py-0.5 rounded whitespace-nowrap shadow-md">
+            Academic Jargon Flag
+          </span>
+</span>
+<span> gets leaked into the surroundings, like dropping pebbles into </span>
+<!-- Successfully used analogy span -->
+<span class="bg-tertiary-fixed-dim/30 text-tertiary-container border-b border-tertiary-container/40 px-1 py-0.5 rounded font-medium">
+          a restless pond of rippling water
+        </span>
+<span>, muddying up the neat phase information...</span>
+<span class="inline-block w-1.5 h-4 bg-primary align-middle ml-1 cursor-blink"></span>
+</div>
+</section>
+<!-- LIVE AI JARGON & ANALOGY DETECTOR STREAM -->
+<section class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between px-1">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider font-bold">Heuristic Feedback Stream</span>
+<span class="font-label-sm text-label-sm text-primary font-semibold">2 Detected Nodes</span>
+</div>
+<!-- Jargon Warning Pill -->
+<div class="p-space-md rounded-xl bg-[#c25e34]/[0.06] border border-dashed border-secondary/40 flex items-start gap-3">
+<div class="p-1 rounded bg-secondary/10 text-secondary shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[18px]" data-icon="warning">warning</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md font-semibold text-secondary">Jargon Flagged: "Wave function collapse"</span>
+<span class="font-label-sm text-label-sm text-secondary bg-secondary-fixed/60 px-2 py-0.5 rounded-full font-bold">Simplify</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+            Try substituting with: <span class="font-medium text-primary">"the cloud of possibilities locking into one definite picture"</span>.
+          </p>
+</div>
+</div>
+<!-- Success Analogy Pill -->
+<div class="p-space-md rounded-xl bg-surface-container-lowest border-l-4 border-l-tertiary-container border border-surface-container-highest flex items-start gap-3 shadow-sm">
+<div class="p-1 rounded bg-tertiary-fixed text-tertiary-container shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[18px]" data-icon="check_circle">check_circle</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md font-semibold text-on-surface">Intuitive Analogy Validated</span>
+<span class="font-label-sm text-label-sm text-on-tertiary-container bg-tertiary-fixed-dim/40 px-2 py-0.5 rounded-full font-bold">+18 Intuition</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+            "Water ripples muddying neat information" maps cleanly to environmental entanglement for a lay audience.
+          </p>
+</div>
+</div>
+</section>
+<!-- QUICK PROMPTS & SCAFFOLDING BAR -->
+<section class="flex flex-wrap gap-2 pt-1">
+<button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container border border-outline-variant/50 text-on-surface text-label-md font-label-md hover:bg-surface-container-high transition-colors active:scale-95">
+<span class="material-symbols-outlined text-secondary text-[16px]" data-icon="lightbulb">lightbulb</span>
+        Need an analogy? Tap for prompt
+      </button>
+<button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container border border-outline-variant/50 text-on-surface text-label-md font-label-md hover:bg-surface-container-high transition-colors active:scale-95">
+<span class="material-symbols-outlined text-primary text-[16px]" data-icon="auto_awesome">auto_awesome</span>
+        Simpler wording suggestions
+      </button>
+<button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container border border-outline-variant/50 text-on-surface-variant text-label-md font-label-md hover:bg-surface-container-high transition-colors active:scale-95">
+<span class="material-symbols-outlined text-[16px]" data-icon="help_outline">help_outline</span>
+        What would a 10-year-old ask next?
+      </button>
+</section>
+</main>
+<!-- DOCKED BOTTOM CONTROL CONSOLE (Tactile Voice Capture & Analyze) -->
+<footer class="fixed bottom-0 left-0 w-full z-50 bg-surface/95 dark:bg-surface-container-lowest/95 backdrop-blur-md border-t border-outline-variant/30 py-space-md px-margin">
+<div class="max-w-2xl mx-auto flex items-center justify-between gap-space-md">
+<!-- Secondary Audio State / Reset -->
+<button class="flex flex-col items-center justify-center p-2 rounded-xl text-on-surface-variant hover:text-error hover:bg-error-container/20 transition-all duration-150 active:scale-95" title="Restart explanation">
+<span class="material-symbols-outlined text-[24px]" data-icon="restart_alt">restart_alt</span>
+<span class="font-label-sm text-label-sm mt-0.5">Reset</span>
+</button>
+<!-- Central Pulsing Voice Recording Button -->
+<div class="relative flex items-center justify-center">
+<!-- Concentric haptic pulse rings -->
+<div class="absolute inset-0 -m-3 rounded-full bg-secondary animate-tactile-ring pointer-events-none"></div>
+<div class="absolute inset-0 -m-1.5 rounded-full bg-secondary/30 pointer-events-none"></div>
+<!-- Master Recording Button -->
+<button class="relative z-10 w-16 h-16 rounded-full bg-secondary text-on-secondary shadow-lg flex items-center justify-center transition-transform active:scale-95 hover:brightness-105" title="Pause or Pause Recording">
+<span class="material-symbols-outlined text-[30px]" data-icon="pause">pause</span>
+</button>
+</div>
+<!-- Primary Action: Finish & Analyze -->
+<button class="h-12 px-space-lg rounded-xl bg-primary-container text-on-primary font-label-lg text-label-lg font-semibold flex items-center justify-center gap-2 shadow-md hover:brightness-110 transition-all active:scale-95">
+<span>Finish &amp; Analyze</span>
+<span class="material-symbols-outlined text-[18px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+<!-- Docked Zero-Friction Helper Micro-Text -->
+<div class="text-center mt-2">
+<p class="font-label-sm text-label-sm text-outline">
+        Speak continuously — the Feynman probe automatically segments logic nodes &amp; flags comprehension holes.
+      </p>
+</div>
+</footer>
+</body></html>
