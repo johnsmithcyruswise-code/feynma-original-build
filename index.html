@@ -1,23 +1,68 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Feynma Library & Feynman Studio</title>
-    <meta name="description" content="Feynman technique synthesis engine, interactive voice probe diagnostics, intuitive analogies, and concept mastery library." />
-    <meta property="og:title" content="Feynma Library & Feynman Studio" />
-    <meta property="og:description" content="Feynman technique synthesis engine, interactive voice probe diagnostics, intuitive analogies, and concept mastery library." />
+    <title>Feynman AI Studio — Master Anything by Teaching, Listening & Summarizing</title>
+    <meta name="description" content="100% Free Lifetime Access. Master complex concepts using the Feynman Technique, real-time voice tutoring, multi-depth summaries, and active spaced-repetition flashcards." />
+    <meta property="og:title" content="Feynman AI Studio — Master Anything by Teaching, Listening & Summarizing" />
+    <meta property="og:description" content="100% Free Lifetime Access. Master complex concepts using the Feynman Technique, real-time voice tutoring, multi-depth summaries, and active spaced-repetition flashcards." />
     <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#0B0F19" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    
+    <!-- PWA Manifest & Icons -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/svg+xml" href="/icon-192.svg" />
+    <link rel="apple-touch-icon" href="/icon-192.svg" />
+
     <!-- Material Symbols & Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
   </head>
-  <body class="bg-[#050507] text-[#E4E4E7] antialiased min-h-screen">
+  <body class="bg-[#0B0F19] text-[#F1F5F9] antialiased min-h-screen selection:bg-indigo-500/30 selection:text-indigo-200">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Security & Anti-Inspection Hardening + PWA Service Worker -->
+    <script>
+      // 1. Block right-click context menu
+      document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        return false;
+      });
+
+      // 2. Block developer inspection shortcuts (F12, Ctrl+Shift+I/J/C, Ctrl+U, Cmd+Option+I)
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'F12') {
+          e.preventDefault();
+          return false;
+        }
+        if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) {
+          e.preventDefault();
+          return false;
+        }
+        if (e.metaKey && e.altKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j')) {
+          e.preventDefault();
+          return false;
+        }
+        if (e.ctrlKey && (e.key === 'U' || e.key === 'u')) {
+          e.preventDefault();
+          return false;
+        }
+      });
+
+      // 3. Register PWA Service Worker
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js').catch(function(err) {
+            console.log('[PWA] Service worker registration note:', err);
+          });
+        });
+      }
+    </script>
   </body>
 </html>
-

@@ -8,6 +8,9 @@ interface HomeScreenProps {
   onNewExplanation: () => void;
   onBrowseLibrary: () => void;
   onOpenTutor: () => void;
+  onOpenVoiceStudio?: () => void;
+  onOpenSummarizer?: () => void;
+  onOpenFlashcards?: () => void;
   onSelectConcept: (concept: ConceptItem) => void;
   onRetestConcept: (concept: ConceptItem) => void;
 }
@@ -19,6 +22,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onNewExplanation,
   onBrowseLibrary,
   onOpenTutor,
+  onOpenVoiceStudio,
+  onOpenSummarizer,
+  onOpenFlashcards,
   onSelectConcept,
   onRetestConcept,
 }) => {
@@ -172,6 +178,56 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         >
           Talk Now
         </button>
+      </div>
+
+      {/* CORE FEYNMAN STUDIOS GRID */}
+      <div className="flex flex-col gap-2.5">
+        <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500">
+          Core Feynman Studios
+        </span>
+        <div className="grid grid-cols-3 gap-2.5">
+          {/* 1. Voice Studio */}
+          <button
+            onClick={onOpenVoiceStudio}
+            className="p-3.5 rounded-2xl bg-[#0C0C10] hover:bg-[#121218] border border-white/[0.06] hover:border-indigo-500/30 flex flex-col items-start gap-2 transition-all text-left group"
+          >
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-sm text-emerald-400 group-hover:scale-110 transition-transform">
+              🎙️
+            </div>
+            <div>
+              <span className="text-xs font-medium text-zinc-200 block">Voice Studio</span>
+              <span className="text-[10px] text-zinc-500 font-light">Waveform probe</span>
+            </div>
+          </button>
+
+          {/* 2. Summarizer */}
+          <button
+            onClick={onOpenSummarizer}
+            className="p-3.5 rounded-2xl bg-[#0C0C10] hover:bg-[#121218] border border-white/[0.06] hover:border-indigo-500/30 flex flex-col items-start gap-2 transition-all text-left group"
+          >
+            <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-sm text-indigo-400 group-hover:scale-110 transition-transform">
+              📄
+            </div>
+            <div>
+              <span className="text-xs font-medium text-zinc-200 block">Summarizer</span>
+              <span className="text-[10px] text-zinc-500 font-light">Multi-depth ELI5</span>
+            </div>
+          </button>
+
+          {/* 3. Flashcards */}
+          <button
+            onClick={onOpenFlashcards}
+            className="p-3.5 rounded-2xl bg-[#0C0C10] hover:bg-[#121218] border border-white/[0.06] hover:border-indigo-500/30 flex flex-col items-start gap-2 transition-all text-left group"
+          >
+            <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-sm text-purple-400 group-hover:scale-110 transition-transform">
+              🃏
+            </div>
+            <div>
+              <span className="text-xs font-medium text-zinc-200 block">Flashcards</span>
+              <span className="text-[10px] text-zinc-500 font-light">SM-2 Spaced recall</span>
+            </div>
+          </button>
+        </div>
       </div>
 
       {/* "DUE TODAY" SECTION (ONLY IF AT LEAST 1 DUE ROW EXISTS) */}

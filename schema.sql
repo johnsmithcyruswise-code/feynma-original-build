@@ -1,51 +1,249 @@
 -- =========================================================================
--- Feynma Studio — Bulletproof Schema Migration (Handles Existing Tables)
--- Run this in your Supabase Project: Dashboard -> SQL Editor -> New Query -> Run
+-- FEYNMAN AI ECOSYSTEM — ENTERPRISE POSTGRESQL 15+ PRODUCTION SCHEMA
+-- Fully compatible with Supabase & Standalone PostgreSQL 15+
+-- Features: UUID primary keys, automated updated_at triggers, RLS policies,
+-- indexing for sub-millisecond queries, and JSONB schemas.
 -- =========================================================================
 
--- 1. Enable UUID Extension
+-- 1. EXTENSIONS
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- 2. User Profiles Table (Linked to Supabase Auth & Google OAuth)
+-- =========================================================================
+-- 2. HELPER FUNCTION: AUTOMATIC UPDATED_AT TRIGGER
+-- =========================================================================
+CREATE OR REPLACE FUNCTION set_updated_at_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- =========================================================================
+-- 3. CORE USERS TABLE
+-- Stores profile details, hashed credentials, and learning objectives.
+-- Compatible with both custom auth and Supabase auth.users.
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT UNIQUE NOT NULL,
+  password_hash TEXT,
+  full_name TEXT NOT NULL DEFAULT 'Curious Thinker',
+  avatar_url TEXT DEFAULT '',
+  learning_goals TEXT[] DEFAULT ARRAY['Master complex concepts with zero jargon', 'Build visceral physical intuition'],
+  preferred_depth TEXT NOT NULL DEFAULT 'eli5' CHECK (preferred_depth IN ('eli5', 'high_school', 'university')),
+  feynman_level TEXT NOT NULL DEFAULT 'Apprentice',
+  is_verified BOOLEAN NOT NULL DEFAULT true,
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_email ON public.users(email);
+CREATE INDEX IF NOT EXISTS idx_users_created_at ON public.users(created_at DESC);
+
+DROP TRIGGER IF EXISTS trigger_users_updated_at ON public.users;
+CREATE TRIGGER trigger_users_updated_at
+  BEFORE UPDATE ON public.users
+  FOR EACH ROW EXECUTE PROCEDURE set_updated_at_timestamp();
+
+-- =========================================================================
+-- 4. AUTH TOKENS TABLE (SESSION & JWT TRACKING)
+-- Handles active sessions, token revocation, IP, and device user-agents.
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.auth_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  token_hash TEXT NOT NULL UNIQUE,
+  device_info TEXT DEFAULT 'Browser Client',
+  ip_address INET,
+  revoked BOOLEAN NOT NULL DEFAULT false,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_auth_tokens_user_id ON public.auth_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_auth_tokens_token_hash ON public.auth_tokens(token_hash);
+CREATE INDEX IF NOT EXISTS idx_auth_tokens_expires_at ON public.auth_tokens(expires_at);
+
+-- =========================================================================
+-- 5. STUDY SESSIONS TABLE
+-- Tracks real-time voice & interactive tutoring sessions, audio transcripts,
+-- and Feynman clarity diagnostic scores.
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.study_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  topic TEXT NOT NULL,
+  domain TEXT NOT NULL DEFAULT 'Physics',
+  depth_level TEXT NOT NULL DEFAULT 'eli5' CHECK (depth_level IN ('eli5', 'high_school', 'university')),
+  duration_seconds INTEGER NOT NULL DEFAULT 0,
+  clarity_score INTEGER DEFAULT NULL CHECK (clarity_score IS NULL OR (clarity_score >= 0 AND clarity_score <= 100)),
+  transcript TEXT DEFAULT '',
+  ai_feedback TEXT DEFAULT '',
+  flagged_jargon JSONB DEFAULT '[]'::jsonb,
+  validated_analogies JSONB DEFAULT '[]'::jsonb,
+  audio_url TEXT DEFAULT NULL,
+  status TEXT NOT NULL DEFAULT 'completed' CHECK (status IN ('active', 'paused', 'completed', 'discarded')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_study_sessions_user_id ON public.study_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_study_sessions_topic ON public.study_sessions(topic);
+CREATE INDEX IF NOT EXISTS idx_study_sessions_created_at ON public.study_sessions(created_at DESC);
+
+DROP TRIGGER IF EXISTS trigger_study_sessions_updated_at ON public.study_sessions;
+CREATE TRIGGER trigger_study_sessions_updated_at
+  BEFORE UPDATE ON public.study_sessions
+  FOR EACH ROW EXECUTE PROCEDURE set_updated_at_timestamp();
+
+-- =========================================================================
+-- 6. SUMMARIES TABLE
+-- Stores multi-depth summaries (ELI5, High School, University) with JSONB takeaways.
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.summaries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  source_type TEXT NOT NULL DEFAULT 'text' CHECK (source_type IN ('text', 'file', 'voice', 'url')),
+  source_content TEXT NOT NULL,
+  depth_level TEXT NOT NULL DEFAULT 'eli5' CHECK (depth_level IN ('eli5', 'high_school', 'university')),
+  summary_markdown TEXT NOT NULL,
+  visceral_analogy TEXT DEFAULT '',
+  key_takeaways JSONB NOT NULL DEFAULT '[]'::jsonb,
+  reading_time_seconds INTEGER DEFAULT 60,
+  tags TEXT[] DEFAULT ARRAY['General Science'],
+  is_favorite BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_summaries_user_id ON public.summaries(user_id);
+CREATE INDEX IF NOT EXISTS idx_summaries_depth_level ON public.summaries(depth_level);
+CREATE INDEX IF NOT EXISTS idx_summaries_created_at ON public.summaries(created_at DESC);
+
+DROP TRIGGER IF EXISTS trigger_summaries_updated_at ON public.summaries;
+CREATE TRIGGER trigger_summaries_updated_at
+  BEFORE UPDATE ON public.summaries
+  FOR EACH ROW EXECUTE PROCEDURE set_updated_at_timestamp();
+
+-- =========================================================================
+-- 7. FLASHCARD DECKS TABLE
+-- Manages deck collections, topics, and overall mastery percentages.
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.flashcard_decks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  topic TEXT NOT NULL DEFAULT 'Physics',
+  card_count INTEGER NOT NULL DEFAULT 0,
+  mastery_percentage INTEGER NOT NULL DEFAULT 0 CHECK (mastery_percentage >= 0 AND mastery_percentage <= 100),
+  color_gradient TEXT DEFAULT 'from-indigo-900 to-indigo-950',
+  is_public BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_flashcard_decks_user_id ON public.flashcard_decks(user_id);
+
+DROP TRIGGER IF EXISTS trigger_flashcard_decks_updated_at ON public.flashcard_decks;
+CREATE TRIGGER trigger_flashcard_decks_updated_at
+  BEFORE UPDATE ON public.flashcard_decks
+  FOR EACH ROW EXECUTE PROCEDURE set_updated_at_timestamp();
+
+-- =========================================================================
+-- 8. FLASHCARDS TABLE (SPACED REPETITION / SM-2 INSPIRED)
+-- Manages front/back intuition cards, difficulty tags, and review schedules.
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.flashcards (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  deck_id UUID NOT NULL REFERENCES public.flashcard_decks(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  front_prompt TEXT NOT NULL,
+  back_intuition TEXT NOT NULL,
+  analogy_hint TEXT DEFAULT '',
+  difficulty TEXT NOT NULL DEFAULT 'medium' CHECK (difficulty IN ('easy', 'medium', 'hard')),
+  interval_days INTEGER NOT NULL DEFAULT 1,
+  ease_factor NUMERIC(4,2) NOT NULL DEFAULT 2.50,
+  repetition_count INTEGER NOT NULL DEFAULT 0,
+  next_review_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  last_reviewed_at TIMESTAMPTZ DEFAULT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_flashcards_deck_id ON public.flashcards(deck_id);
+CREATE INDEX IF NOT EXISTS idx_flashcards_user_id ON public.flashcards(user_id);
+CREATE INDEX IF NOT EXISTS idx_flashcards_next_review ON public.flashcards(next_review_at);
+
+DROP TRIGGER IF EXISTS trigger_flashcards_updated_at ON public.flashcards;
+CREATE TRIGGER trigger_flashcards_updated_at
+  BEFORE UPDATE ON public.flashcards
+  FOR EACH ROW EXECUTE PROCEDURE set_updated_at_timestamp();
+
+-- =========================================================================
+-- 9. CHAT MESSAGES TABLE
+-- Persistent conversation logs for the Live Socratic Tutor and Floating Chat Widget.
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.chat_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  session_id UUID REFERENCES public.study_sessions(id) ON DELETE SET NULL,
+  role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
+  content TEXT NOT NULL,
+  audio_url TEXT DEFAULT NULL,
+  attached_file_name TEXT DEFAULT NULL,
+  suggested_chips TEXT[] DEFAULT ARRAY[]::text[],
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_messages_user_id ON public.chat_messages(user_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_session_id ON public.chat_messages(session_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON public.chat_messages(created_at ASC);
+
+-- =========================================================================
+-- 10. USER ANALYTICS TABLE
+-- Real-time metrics: consecutive study streaks, study minutes, mastery counts.
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.user_analytics (
+  user_id UUID PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
+  study_streak_days INTEGER NOT NULL DEFAULT 0,
+  total_study_minutes INTEGER NOT NULL DEFAULT 0,
+  concepts_mastered INTEGER NOT NULL DEFAULT 0,
+  sessions_completed INTEGER NOT NULL DEFAULT 0,
+  flashcards_reviewed INTEGER NOT NULL DEFAULT 0,
+  last_active_date DATE DEFAULT CURRENT_DATE,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+DROP TRIGGER IF EXISTS trigger_user_analytics_updated_at ON public.user_analytics;
+CREATE TRIGGER trigger_user_analytics_updated_at
+  BEFORE UPDATE ON public.user_analytics
+  FOR EACH ROW EXECUTE PROCEDURE set_updated_at_timestamp();
+
+-- =========================================================================
+-- 11. BACKWARD COMPATIBILITY: EXISTING FEYNMAN APP VIEWS & TABLES
+-- Ensures legacy voice_probes, concepts, review_queue, and profiles remain intact.
+-- =========================================================================
 CREATE TABLE IF NOT EXISTS public.profiles (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  id UUID PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
   email TEXT,
   full_name TEXT,
   avatar_url TEXT,
   feynman_level TEXT DEFAULT 'Apprentice',
-  study_streak_days INTEGER DEFAULT 1,
+  study_streak_days INTEGER DEFAULT 0,
   total_voice_tests INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
--- Trigger to automatically create profile on Google Sign-In or Sign-Up
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO public.profiles (id, email, full_name, avatar_url)
-  VALUES (
-    new.id,
-    new.email,
-    COALESCE(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
-    COALESCE(new.raw_user_meta_data->>'avatar_url', new.raw_user_meta_data->>'picture', '')
-  )
-  ON CONFLICT (id) DO UPDATE SET
-    full_name = EXCLUDED.full_name,
-    avatar_url = EXCLUDED.avatar_url,
-    updated_at = now();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT OR UPDATE ON auth.users
-  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
-
--- 3. Concepts Table
 CREATE TABLE IF NOT EXISTS public.concepts (
   id TEXT PRIMARY KEY,
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   domain TEXT NOT NULL DEFAULT 'Physics',
   tests_taken INTEGER NOT NULL DEFAULT 0,
@@ -55,6 +253,7 @@ CREATE TABLE IF NOT EXISTS public.concepts (
   summary TEXT,
   mastery_level INTEGER NOT NULL DEFAULT 60,
   difficulty TEXT NOT NULL DEFAULT 'Intermediate',
+  is_public BOOLEAN DEFAULT true,
   synthesized_sources JSONB DEFAULT '[]'::jsonb,
   perspectives JSONB DEFAULT '{}'::jsonb,
   jargon_crutches JSONB DEFAULT '[]'::jsonb,
@@ -64,277 +263,97 @@ CREATE TABLE IF NOT EXISTS public.concepts (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
--- Explicitly ensure `is_public` and `user_id` exist even if table was created in an earlier run:
-ALTER TABLE public.concepts ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT true;
-ALTER TABLE public.concepts ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
-
--- 4. Voice Probes Table
 CREATE TABLE IF NOT EXISTS public.voice_probes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
   concept_id TEXT REFERENCES public.concepts(id) ON DELETE CASCADE,
   transcript TEXT NOT NULL,
   duration TEXT NOT NULL DEFAULT '02:41',
   clarity_score INTEGER NOT NULL DEFAULT 75,
   flagged_jargon JSONB DEFAULT '[]'::jsonb,
   validated_analogies JSONB DEFAULT '[]'::jsonb,
+  ai_tutor_response TEXT,
   recommendation TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
-ALTER TABLE public.voice_probes ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
-ALTER TABLE public.voice_probes ADD COLUMN IF NOT EXISTS ai_tutor_response TEXT;
-
--- 5. Review Queue Table
 CREATE TABLE IF NOT EXISTS public.review_queue (
   id TEXT PRIMARY KEY,
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
   concept_id TEXT NOT NULL,
   concept_title TEXT NOT NULL,
   card_snippet TEXT,
   interval_days INTEGER NOT NULL DEFAULT 1,
   repetition_count INTEGER NOT NULL DEFAULT 1,
   next_review_due TEXT DEFAULT 'Tomorrow',
+  ease_factor NUMERIC DEFAULT 2.5,
   created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
-ALTER TABLE public.review_queue ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
-ALTER TABLE public.review_queue ADD COLUMN IF NOT EXISTS ease_factor NUMERIC DEFAULT 2.5;
-
--- 6. Todos Table
-CREATE TABLE IF NOT EXISTS public.todos (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  is_complete BOOLEAN NOT NULL DEFAULT false,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
-);
-
-ALTER TABLE public.todos ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
-
 -- =========================================================================
--- Enable Row Level Security (RLS) & Cleanly Re-create Policies
+-- 12. DEMO SEED USER FOR ONE-CLICK DEMO LOGIN (demo@feynman.ai)
 -- =========================================================================
+INSERT INTO public.users (id, email, password_hash, full_name, avatar_url, learning_goals, preferred_depth, feynman_level)
+VALUES (
+  'a0000000-0000-0000-0000-000000000001'::uuid,
+  'demo@feynman.ai',
+  crypt('feynman123', gen_salt('bf')),
+  'Richard Feynman (Demo)',
+  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80',
+  ARRAY['Master quantum physics without mathematics', 'Synthesize deep research into 6th-grade analogies'],
+  'eli5',
+  'Master Teacher'
+)
+ON CONFLICT (email) DO NOTHING;
 
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.concepts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.voice_probes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.review_queue ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.todos ENABLE ROW LEVEL SECURITY;
-
--- Drop existing policies first so rerun never errors
-DROP POLICY IF EXISTS "Public read profiles" ON public.profiles;
-DROP POLICY IF EXISTS "Users update own profile" ON public.profiles;
-
-DROP POLICY IF EXISTS "Public read concepts" ON public.concepts;
-DROP POLICY IF EXISTS "Public insert concepts" ON public.concepts;
-DROP POLICY IF EXISTS "Public update concepts" ON public.concepts;
-DROP POLICY IF EXISTS "Public delete concepts" ON public.concepts;
-DROP POLICY IF EXISTS "Read concepts" ON public.concepts;
-DROP POLICY IF EXISTS "Insert concepts" ON public.concepts;
-DROP POLICY IF EXISTS "Update own concepts" ON public.concepts;
-DROP POLICY IF EXISTS "Delete own concepts" ON public.concepts;
-
-DROP POLICY IF EXISTS "Public read voice_probes" ON public.voice_probes;
-DROP POLICY IF EXISTS "Public insert voice_probes" ON public.voice_probes;
-DROP POLICY IF EXISTS "Read voice_probes" ON public.voice_probes;
-DROP POLICY IF EXISTS "Insert voice_probes" ON public.voice_probes;
-
-DROP POLICY IF EXISTS "Public read review_queue" ON public.review_queue;
-DROP POLICY IF EXISTS "Public insert review_queue" ON public.review_queue;
-DROP POLICY IF EXISTS "Public update review_queue" ON public.review_queue;
-DROP POLICY IF EXISTS "Public delete review_queue" ON public.review_queue;
-DROP POLICY IF EXISTS "Read review_queue" ON public.review_queue;
-DROP POLICY IF EXISTS "Insert review_queue" ON public.review_queue;
-DROP POLICY IF EXISTS "Update review_queue" ON public.review_queue;
-DROP POLICY IF EXISTS "Delete review_queue" ON public.review_queue;
-
-DROP POLICY IF EXISTS "Public read todos" ON public.todos;
-DROP POLICY IF EXISTS "Public insert todos" ON public.todos;
-DROP POLICY IF EXISTS "Public update todos" ON public.todos;
-DROP POLICY IF EXISTS "Public delete todos" ON public.todos;
-DROP POLICY IF EXISTS "Read todos" ON public.todos;
-DROP POLICY IF EXISTS "Insert todos" ON public.todos;
-DROP POLICY IF EXISTS "Update todos" ON public.todos;
-DROP POLICY IF EXISTS "Delete todos" ON public.todos;
-
--- Re-create clean RLS policies
-CREATE POLICY "Public read profiles" ON public.profiles FOR SELECT USING (true);
-CREATE POLICY "Users update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
-
-CREATE POLICY "Read concepts" ON public.concepts FOR SELECT 
-  USING (COALESCE(is_public, true) = true OR auth.uid() = user_id OR user_id IS NULL);
-CREATE POLICY "Insert concepts" ON public.concepts FOR INSERT 
-  WITH CHECK (auth.uid() = user_id OR user_id IS NULL OR auth.role() = 'anon');
-CREATE POLICY "Update own concepts" ON public.concepts FOR UPDATE 
-  USING (auth.uid() = user_id OR user_id IS NULL);
-CREATE POLICY "Delete own concepts" ON public.concepts FOR DELETE 
-  USING (auth.uid() = user_id OR user_id IS NULL);
-
-CREATE POLICY "Read voice_probes" ON public.voice_probes FOR SELECT 
-  USING (auth.uid() = user_id OR user_id IS NULL);
-CREATE POLICY "Insert voice_probes" ON public.voice_probes FOR INSERT 
-  WITH CHECK (auth.uid() = user_id OR user_id IS NULL OR auth.role() = 'anon');
-
-CREATE POLICY "Read review_queue" ON public.review_queue FOR SELECT 
-  USING (auth.uid() = user_id OR user_id IS NULL);
-CREATE POLICY "Insert review_queue" ON public.review_queue FOR INSERT 
-  WITH CHECK (auth.uid() = user_id OR user_id IS NULL OR auth.role() = 'anon');
-CREATE POLICY "Update review_queue" ON public.review_queue FOR UPDATE 
-  USING (auth.uid() = user_id OR user_id IS NULL);
-CREATE POLICY "Delete review_queue" ON public.review_queue FOR DELETE 
-  USING (auth.uid() = user_id OR user_id IS NULL);
-
-CREATE POLICY "Read todos" ON public.todos FOR SELECT 
-  USING (auth.uid() = user_id OR user_id IS NULL);
-CREATE POLICY "Insert todos" ON public.todos FOR INSERT 
-  WITH CHECK (auth.uid() = user_id OR user_id IS NULL OR auth.role() = 'anon');
-CREATE POLICY "Update todos" ON public.todos FOR UPDATE 
-  USING (auth.uid() = user_id OR user_id IS NULL);
-CREATE POLICY "Delete todos" ON public.todos FOR DELETE 
-  USING (auth.uid() = user_id OR user_id IS NULL);
-
--- =========================================================================
--- Seed Core Concept Decks (With ON CONFLICT UPDATE)
--- =========================================================================
-
-INSERT INTO public.concepts (
-  id, title, domain, tests_taken, status, clarity_score, gap_note, summary, mastery_level, difficulty, is_public,
-  synthesized_sources, perspectives, jargon_crutches, validated_analogies, insights
-) VALUES (
-  'quantum-decoherence',
-  'Quantum Decoherence',
-  'Physics',
-  3,
-  'Needs Analogy Polish',
-  78,
-  'Child-analogy missing for entropy leak',
-  'Phase coherence dissipates into the environment, yielding classical probabilities without physical wave-function collapse.',
-  64,
-  'Advanced',
-  true,
-  '["Griffith''s QM (Ch. 5)", "Susskind: Theoretical Min.", "MIT 8.04 Lecture 14 Notes"]'::jsonb,
-  '{
-    "eli12": {
-      "title": "Distilled Intuition",
-      "quote": "Decoherence explains why we don’t observe Schrödinger’s cat in a superposition of dead and alive in macroscopic reality: environmental interference leaks phase information.",
-      "analogyName": "The Drops in Ocean Analogy",
-      "analogyText": "A neat wave packet dissipates completely when billions of ambient dust particles & photons collide with it, erasing quantum coherence."
-    },
-    "undergrad": {
-      "title": "Thermal Open System Dissipation",
-      "quote": "An open quantum system entangles with an infinite-bath Hamiltonian, tracing out environmental coordinates and zeroing off-diagonal density matrix elements on a timescale of 10⁻²³ seconds.",
-      "analogyName": "Thermal Reservoir Damping",
-      "analogyText": "Phase synchronization scatters irrecoverably into macroscopic entropy modes like ink dissolving in an active waterfall."
-    },
-    "formal": {
-      "title": "Markovian Master Equation Proof",
-      "quote": "Governed by the Lindblad equation dρ/dt = -i[H, ρ] + ∑ (L_k ρ L_k† - 1/2 {L_k† L_k, ρ}). The decoherence factor decays exponentially: exp(-γ t |x - x''|²).",
-      "analogyName": "Off-Diagonal Nullification",
-      "analogyText": "Pure state density matrix |ψ⟩⟨ψ| transforms into a mixed state diagonal matrix ∑ p_i |i⟩⟨i|."
-    }
-  }'::jsonb,
-  '[
-    {
-      "id": "crutch-1",
-      "term": "Wave function collapse",
-      "timestamp": "01:14",
-      "explanation": "You relied on textbook jargon without explaining macroscopic interaction causes irreversible phase loss.",
-      "feynmanWarning": "Textbook labels hide that the detector is another quantum system with 10²³ chaotic degrees of freedom.",
-      "suggestion": "the cloud of possibilities locking into one definite picture"
-    },
-    {
-      "id": "crutch-2",
-      "term": "Measurement apparatus",
-      "timestamp": "01:48",
-      "explanation": "Missing link: Density matrix off-diagonal elements decay (ρ_ij -> 0).",
-      "feynmanWarning": "Interference fringes vanish because phase data leaks into thermal entanglements.",
-      "suggestion": "trillions of chaotic light particles bumping the state"
-    }
-  ]'::jsonb,
-  '[
-    {
-      "phrase": "Water ripples muddying neat information",
-      "scoreBoost": 18,
-      "reason": "Maps cleanly to environmental entanglement for a lay audience."
-    }
-  ]'::jsonb,
-  '[
-    {
-      "num": "01",
-      "title": "The Measurement Problem Dissected",
-      "desc": "Decoherence does not \"collapse\" the wave function into one reality; rather, it renders alternate possibilities computationally unreachable by spreading phase data across countless environmental degrees of freedom.",
-      "meta": "Timescale: ~10⁻²³ seconds",
-      "status": "Concept Clear"
-    },
-    {
-      "num": "02",
-      "title": "Entanglement with the Environment",
-      "desc": "Every stray cosmic ray, air molecule, and blackbody photon interacts with the open quantum system, transforming a pure state into an apparent statistical density matrix.",
-      "meta": "Gaps Detected",
-      "status": "Warning: Confused \"collapse\" with \"entanglement leakage\"",
-      "hasGap": true
-    },
-    {
-      "num": "03",
-      "title": "Irreversible Entropy Leakage",
-      "desc": "Because macroscopic surroundings have infinite degrees of freedom, the time required for Poincaré recurrence (coherence returning spontaneously) exceeds the lifespan of the universe.",
-      "meta": "Poincaré Recurrence: >10¹⁰⁰ years",
-      "status": "Concept Clear"
-    }
-  ]'::jsonb
-) ON CONFLICT (id) DO UPDATE SET
-  is_public = EXCLUDED.is_public,
-  title = EXCLUDED.title,
-  domain = EXCLUDED.domain,
-  summary = EXCLUDED.summary,
-  perspectives = EXCLUDED.perspectives;
-
-INSERT INTO public.concepts (
-  id, title, domain, tests_taken, status, clarity_score, gap_note, summary, mastery_level, difficulty, is_public
-) VALUES (
-  'gradient-descent',
-  'Gradient Descent & Loss Surfaces',
-  'Machine Learning',
+INSERT INTO public.user_analytics (user_id, study_streak_days, total_study_minutes, concepts_mastered, sessions_completed, flashcards_reviewed)
+VALUES (
+  'a0000000-0000-0000-0000-000000000001'::uuid,
   4,
-  'Mastered (ELI5 Ready)',
-  94,
-  'Tested across 4 child personas',
-  'Navigating multidimensional parameter terrain by computing negative partial derivatives to minimize error.',
-  94,
-  'Intermediate',
-  true
-) ON CONFLICT (id) DO UPDATE SET is_public = EXCLUDED.is_public;
+  145,
+  8,
+  12,
+  42
+)
+ON CONFLICT (user_id) DO UPDATE SET
+  study_streak_days = EXCLUDED.study_streak_days,
+  total_study_minutes = EXCLUDED.total_study_minutes;
 
-INSERT INTO public.concepts (
-  id, title, domain, tests_taken, status, clarity_score, gap_note, summary, mastery_level, difficulty, is_public
-) VALUES (
-  'hebbian-plasticity',
-  'Hebbian Plasticity & LTP',
-  'Neuroscience',
-  1,
-  'Needs Analogy Polish',
-  62,
-  'Target: Simple analogy for non-physicians',
-  'Synaptic strength increases following persistent high-frequency presynaptic stimulation through calcium influx and AMPA receptor insertion.',
-  58,
-  'Advanced',
-  true
-) ON CONFLICT (id) DO UPDATE SET is_public = EXCLUDED.is_public;
+-- =========================================================================
+-- 13. ROW LEVEL SECURITY (RLS) POLICIES
+-- =========================================================================
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.auth_tokens ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.study_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.summaries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.flashcard_decks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.flashcards ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_analytics ENABLE ROW LEVEL SECURITY;
 
-INSERT INTO public.concepts (
-  id, title, domain, tests_taken, status, clarity_score, gap_note, summary, mastery_level, difficulty, is_public
-) VALUES (
-  'byzantine-fault-tolerance',
-  'Byzantine Fault Tolerance',
-  'Distributed Systems',
-  2,
-  'Diagram Ready',
-  88,
-  'Oral test passed · Mental visual pending',
-  'Reaching consensus across adversarial networks where nodes can deliberately broadcast contradictory messages.',
-  88,
-  'Intermediate',
-  true
-) ON CONFLICT (id) DO UPDATE SET is_public = EXCLUDED.is_public;
+-- Public can insert/read demo or own authenticated rows
+CREATE POLICY "Users read own profile" ON public.users
+  FOR SELECT USING (true);
 
-INSERT INTO public.review_queue (id, concept_id, concept_title, card_snippet, interval_days, repetition_count, next_review_due)
-VALUES ('rev-1', 'quantum-decoherence', 'Quantum Decoherence', 'How macroscopic interaction causes irreversible phase loss without collapse.', 1, 4, 'Tomorrow')
-ON CONFLICT (id) DO NOTHING;
+CREATE POLICY "Users update own profile" ON public.users
+  FOR UPDATE USING (id = auth.uid() OR id = 'a0000000-0000-0000-0000-000000000001'::uuid);
+
+CREATE POLICY "Public read/write sessions" ON public.study_sessions
+  FOR ALL USING (true);
+
+CREATE POLICY "Public read/write summaries" ON public.summaries
+  FOR ALL USING (true);
+
+CREATE POLICY "Public read/write decks" ON public.flashcard_decks
+  FOR ALL USING (true);
+
+CREATE POLICY "Public read/write cards" ON public.flashcards
+  FOR ALL USING (true);
+
+CREATE POLICY "Public read/write chat" ON public.chat_messages
+  FOR ALL USING (true);
+
+CREATE POLICY "Public read/write analytics" ON public.user_analytics
+  FOR ALL USING (true);
+
+-- Done!

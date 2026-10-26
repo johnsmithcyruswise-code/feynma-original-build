@@ -5,6 +5,10 @@ import { Orb } from './components/Orb';
 import { TextInput } from './components/TextInput';
 import { Diagnostic } from './components/Diagnostic';
 import { Library } from './components/Library';
+import { VoiceTutoringStudio } from './components/VoiceTutoringStudio';
+import { SummarizingStudio } from './components/SummarizingStudio';
+import { FlashcardStudio } from './components/FlashcardStudio';
+import { FloatingChatWidget } from './components/FloatingChatWidget';
 import {
   ConceptItem,
   VoiceProbeItem,
@@ -31,12 +35,13 @@ import {
 import { analyzeExplanation, DiagnosticResult } from './lib/groq';
 import { supabase } from './utils/supabase/client';
 
-type Screen = 'home' | 'tutor' | 'live' | 'diagnostic' | 'library';
+type Screen = 'home' | 'voice' | 'summarize' | 'flashcards' | 'tutor' | 'live' | 'diagnostic' | 'library';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
   const [tutorContext, setTutorContext] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
 
   // Real data state
   const [concepts, setConcepts] = useState<ConceptItem[]>([]);
@@ -115,6 +120,26 @@ export default function App() {
       clearInterval(interval);
     };
   }, []);
+
+  // Monitor PWA installation prompt
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallPWA = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const choice = await installPrompt.userChoice;
+    if (choice?.outcome === 'accepted') {
+      showToast('Feynman PWA installed to home screen!', 'success');
+    }
+    setInstallPrompt(null);
+  };
 
   // Fetch real data (Supabase if logged in, localStorage if anon)
   const fetchUserData = async (currentUser: any) => {
@@ -564,15 +589,34 @@ export default function App() {
       )}
 
       {/* Top Header */}
-      <header className="w-full max-w-lg mx-auto pt-6 pb-2 px-4 flex items-center justify-between border-b border-zinc-900/60">
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => setCurrentScreen('home')}>
-          <div className="w-2 h-2 rounded-full bg-indigo-500" />
-          <h1 className="text-sm uppercase tracking-widest font-normal text-zinc-300">
-            Feynma
+      <header className="w-full max-w-xl mx-auto pt-5 pb-3 px-4 flex items-center justify-between border-b border-zinc-900/60">
+        <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => setCurrentScreen('home')}>
+          <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-indigo-500 to-emerald-400" />
+          <h1 className="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
+            Feynman <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">Free</span>
           </h1>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          {/* Quick link to Landing Page */}
+          <a
+            href="/landing.html"
+            className="text-[11px] text-zinc-400 hover:text-white px-2 py-1 rounded-md bg-white/[0.03] border border-white/[0.06] transition-colors flex items-center gap-1"
+            title="View Landing Page"
+          >
+            <span>Landing</span>
+          </a>
+
+          {/* PWA Install Button when available */}
+          {installPrompt && (
+            <button
+              onClick={handleInstallPWA}
+              className="text-[11px] font-semibold text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 px-2.5 py-1 rounded-md transition-all flex items-center gap-1"
+            >
+              <span>Install App</span>
+            </button>
+          )}
+
           {/* Real Streak Chip (ONLY IF >= 2 DAYS) */}
           {user && studyStreak >= 2 && (
             <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-medium">
@@ -581,33 +625,33 @@ export default function App() {
             </div>
           )}
 
-          {/* User Profile / Google Sign-In Button */}
+          {/* User Profile / Auth Button */}
           {user ? (
             <div className="flex items-center gap-2">
-              <span className="text-[11px] text-zinc-400 font-light truncate max-w-[120px]">
+              <span className="text-[11px] text-zinc-300 font-light truncate max-w-[100px]">
                 {user.user_metadata?.full_name || user.email?.split('@')[0]}
               </span>
               <button
                 onClick={handleSignOut}
-                className="text-[10px] uppercase tracking-wider text-zinc-600 hover:text-zinc-400 border border-zinc-800 px-2 py-1 rounded-md transition-colors"
+                className="text-[10px] uppercase tracking-wider text-zinc-500 hover:text-zinc-300 border border-zinc-800 px-2 py-1 rounded-md transition-colors"
                 title="Sign out"
               >
                 Sign out
               </button>
             </div>
           ) : (
-            <button
-              onClick={handleGoogleSignIn}
-              className="text-xs px-2.5 py-1 rounded-md border border-zinc-800 text-zinc-300 hover:border-zinc-700 hover:text-white transition-colors flex items-center gap-1.5 font-light"
+            <a
+              href="/auth.html"
+              className="text-xs px-2.5 py-1 rounded-md bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 hover:text-white hover:bg-indigo-600/40 transition-colors flex items-center gap-1 font-medium"
             >
               <span>Sign in</span>
-            </button>
+            </a>
           )}
         </div>
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full max-w-lg mx-auto flex flex-col justify-center py-4">
+      <main className="flex-1 w-full max-w-xl mx-auto flex flex-col justify-center py-4">
         {/* VIEW 1: HOME */}
         {currentScreen === 'home' && (
           <HomeScreen
@@ -627,12 +671,43 @@ export default function App() {
               setTutorContext(null);
               setCurrentScreen('tutor');
             }}
+            onOpenVoiceStudio={() => setCurrentScreen('voice')}
+            onOpenSummarizer={() => setCurrentScreen('summarize')}
+            onOpenFlashcards={() => setCurrentScreen('flashcards')}
             onSelectConcept={handleSelectConcept}
             onRetestConcept={handleRetestConcept}
           />
         )}
 
-        {/* VIEW 2: FEYNMAN AI TUTOR (Askable, Voice-Optional, File Upload) */}
+        {/* VIEW 2: VOICE TUTORING STUDIO (Real-time Audio Waveform Visualizer & Topic Pills) */}
+        {currentScreen === 'voice' && (
+          <VoiceTutoringStudio
+            onToast={showToast}
+            selectedVoice={selectedVoice}
+            onOpenTestWithTopic={(topic) => {
+              setExplanation(topic);
+              setCurrentScreen('live');
+            }}
+          />
+        )}
+
+        {/* VIEW 3: MULTI-DEPTH SUMMARIZING STUDIO */}
+        {currentScreen === 'summarize' && (
+          <SummarizingStudio
+            onToast={showToast}
+            selectedVoice={selectedVoice}
+          />
+        )}
+
+        {/* VIEW 4: FLASHCARD & MINDMAP GENERATOR (3D Flip & Spaced Repetition) */}
+        {currentScreen === 'flashcards' && (
+          <FlashcardStudio
+            onToast={showToast}
+            selectedVoice={selectedVoice}
+          />
+        )}
+
+        {/* VIEW 5: FEYNMAN AI TUTOR (Askable, Voice-Optional, File Upload) */}
         {currentScreen === 'tutor' && (
           <TutorView
             onSwitchToTest={(prefillConcept) => {
@@ -647,7 +722,7 @@ export default function App() {
           />
         )}
 
-        {/* VIEW 3: LIVE (Feynman Challenge / Diagnostic Testing) */}
+        {/* VIEW 6: LIVE (Feynman Challenge / Diagnostic Testing) */}
         {currentScreen === 'live' && (
           <div className="flex flex-col gap-2">
             <Orb
@@ -687,7 +762,7 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW 4: DIAGNOSTIC */}
+        {/* VIEW 7: DIAGNOSTIC */}
         {currentScreen === 'diagnostic' && (
           <Diagnostic
             diagnostic={diagnostic}
@@ -708,7 +783,7 @@ export default function App() {
           />
         )}
 
-        {/* VIEW 5: LIBRARY */}
+        {/* VIEW 8: LIBRARY */}
         {currentScreen === 'library' && (
           <Library
             concepts={concepts}
@@ -754,13 +829,16 @@ export default function App() {
         </div>
       )}
 
-      {/* Fixed Bottom Navigation (4 Buttons: Home, Tutor, Test, Library) */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#050507]/95 backdrop-blur-md border-t border-zinc-900/80 py-2">
-        <div className="w-full max-w-lg mx-auto px-4 flex items-center justify-around">
+      {/* Floating Chat Widget (Bottom-Right Anchored) */}
+      <FloatingChatWidget selectedVoice={selectedVoice} onToast={showToast} />
+
+      {/* Fixed Bottom Navigation (Obsidian Glassmorphism) */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#0B0F19]/95 backdrop-blur-md border-t border-white/[0.08] py-2">
+        <div className="w-full max-w-xl mx-auto px-2 flex items-center justify-around">
           <button
             onClick={() => setCurrentScreen('home')}
-            className={`flex flex-col items-center gap-1 text-[11px] font-light transition-colors py-1 px-2 ${
-              currentScreen === 'home' ? 'text-indigo-400 font-medium' : 'text-zinc-500 hover:text-zinc-300'
+            className={`flex flex-col items-center gap-0.5 text-[10px] transition-colors py-1 px-1.5 ${
+              currentScreen === 'home' ? 'text-indigo-400 font-semibold' : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >
             <span className="text-sm">🏠</span>
@@ -768,12 +846,42 @@ export default function App() {
           </button>
 
           <button
+            onClick={() => setCurrentScreen('voice')}
+            className={`flex flex-col items-center gap-0.5 text-[10px] transition-colors py-1 px-1.5 ${
+              currentScreen === 'voice' ? 'text-indigo-400 font-semibold' : 'text-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            <span className="text-sm">🎙️</span>
+            <span>Voice</span>
+          </button>
+
+          <button
+            onClick={() => setCurrentScreen('summarize')}
+            className={`flex flex-col items-center gap-0.5 text-[10px] transition-colors py-1 px-1.5 ${
+              currentScreen === 'summarize' ? 'text-indigo-400 font-semibold' : 'text-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            <span className="text-sm">📄</span>
+            <span>Summarize</span>
+          </button>
+
+          <button
+            onClick={() => setCurrentScreen('flashcards')}
+            className={`flex flex-col items-center gap-0.5 text-[10px] transition-colors py-1 px-1.5 ${
+              currentScreen === 'flashcards' ? 'text-indigo-400 font-semibold' : 'text-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            <span className="text-sm">🃏</span>
+            <span>Cards</span>
+          </button>
+
+          <button
             onClick={() => {
               setTutorContext(null);
               setCurrentScreen('tutor');
             }}
-            className={`flex flex-col items-center gap-1 text-[11px] font-light transition-colors py-1 px-2 ${
-              currentScreen === 'tutor' ? 'text-indigo-400 font-medium' : 'text-zinc-500 hover:text-zinc-300'
+            className={`flex flex-col items-center gap-0.5 text-[10px] transition-colors py-1 px-1.5 ${
+              currentScreen === 'tutor' ? 'text-indigo-400 font-semibold' : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >
             <span className="text-sm">💬</span>
@@ -789,8 +897,8 @@ export default function App() {
               setIsSaved(false);
               setCurrentScreen('live');
             }}
-            className={`flex flex-col items-center gap-1 text-[11px] font-light transition-colors py-1 px-2 ${
-              currentScreen === 'live' ? 'text-indigo-400 font-medium' : 'text-zinc-500 hover:text-zinc-300'
+            className={`flex flex-col items-center gap-0.5 text-[10px] transition-colors py-1 px-1.5 ${
+              currentScreen === 'live' ? 'text-indigo-400 font-semibold' : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >
             <span className="text-sm">⚡</span>
@@ -799,8 +907,8 @@ export default function App() {
 
           <button
             onClick={() => setCurrentScreen('library')}
-            className={`flex flex-col items-center gap-1 text-[11px] font-light transition-colors py-1 px-2 ${
-              currentScreen === 'library' ? 'text-indigo-400 font-medium' : 'text-zinc-500 hover:text-zinc-300'
+            className={`flex flex-col items-center gap-0.5 text-[10px] transition-colors py-1 px-1.5 ${
+              currentScreen === 'library' ? 'text-indigo-400 font-semibold' : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >
             <span className="text-sm">📚</span>

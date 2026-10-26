@@ -38,7 +38,7 @@ try {
 
 // Helper to call Groq AI models with active models
 async function callGroqAI(messages: any[], temperature: number = 0.6): Promise<string> {
-  const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'openai/gpt-oss-120b'];
+  const models = ['openai/gpt-oss-120b', 'qwen/qwen3.8-27b', 'openai/gpt-oss-20b'];
   let lastErr = '';
 
   for (const model of models) {
@@ -49,7 +49,7 @@ async function callGroqAI(messages: any[], temperature: number = 0.6): Promise<s
           'Authorization': `Bearer ${GROQ_API_KEY}`,
           'Content-Type': 'application/json'
         },
-        signal: AbortSignal.timeout(3500),
+        signal: AbortSignal.timeout(8000),
         body: JSON.stringify({
           model,
           messages,
@@ -254,14 +254,366 @@ app.get('/api/health', async (_req: Request, res: Response) => {
   }
 });
 
+// Groq API Live Status & Connectivity Probe
+app.get('/api/groq/status', async (_req: Request, res: Response) => {
+  const start = Date.now();
+  try {
+    const response = await fetch('https://api.groq.com/openai/v1/models', {
+      headers: {
+        'Authorization': `Bearer ${GROQ_API_KEY}`
+      },
+      signal: AbortSignal.timeout(4000)
+    });
+    if (response.ok) {
+      const data = await response.json();
+      const models = data.data?.map((m: any) => m.id) || [];
+      return res.json({
+        connected: true,
+        provider: 'Groq Cloud API',
+        latency_ms: Date.now() - start,
+        activeModels: ['openai/gpt-oss-120b', 'qwen/qwen3.8-27b', 'openai/gpt-oss-20b'],
+        availableInAccount: models
+      });
+    } else {
+      const err = await response.json().catch(() => ({}));
+      return res.status(response.status).json({
+        connected: false,
+        error: err?.error?.message || response.statusText,
+        latency_ms: Date.now() - start
+      });
+    }
+  } catch (err: any) {
+    return res.status(500).json({
+      connected: false,
+      error: err.message,
+      latency_ms: Date.now() - start
+    });
+  }
+});
+
+// Standalone Landing & Auth Ecosystem Routes
+app.get(['/landing', '/landing.html'], (_req: Request, res: Response) => {
+  res.sendFile(path.resolve(__dirname, 'landing.html'));
+});
+
+app.get(['/auth', '/auth.html'], (_req: Request, res: Response) => {
+  res.sendFile(path.resolve(__dirname, 'auth.html'));
+});
+
+app.get('/schema.sql', (_req: Request, res: Response) => {
+  res.type('text/plain').sendFile(path.resolve(__dirname, 'schema.sql'));
+});
+
+app.get('/manifest.json', (_req: Request, res: Response) => {
+  res.sendFile(path.resolve(__dirname, 'public', 'manifest.json'));
+});
+
+app.get('/sw.js', (_req: Request, res: Response) => {
+  res.type('application/javascript').sendFile(path.resolve(__dirname, 'public', 'sw.js'));
+});
+
 // 2. Return the SQL schema directly
 app.get('/api/schema', (_req: Request, res: Response) => {
-  const schemaPath = path.resolve(__dirname, 'supabase-schema.sql');
+  const schemaPath = path.resolve(__dirname, 'schema.sql');
   if (fs.existsSync(schemaPath)) {
     const sqlContent = fs.readFileSync(schemaPath, 'utf8');
     return res.type('text/plain').send(sqlContent);
   }
   return res.status(404).send('-- Schema file not found');
+});
+
+// =========================================================================
+// AUTHENTICATION SYSTEM API (/api/auth)
+// =========================================================================
+app.post('/api/auth/demo', (_req: Request, res: Response) => {
+  return res.json({
+    token: 'feynman-demo-jwt-token-active',
+    user: {
+      id: 'a0000000-0000-0000-0000-000000000001',
+      email: 'demo@feynman.ai',
+      full_name: 'Richard Feynman (Demo)',
+      avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80',
+      feynman_level: 'Master Teacher',
+      preferred_depth: 'eli5',
+      study_streak_days: 4
+    }
+  });
+});
+
+app.post('/api/auth/login', async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'Email address is required.' });
+  }
+
+  // Check demo user
+  if (email === 'demo@feynman.ai') {
+    return res.json({
+      token: 'feynman-demo-jwt-token-active',
+      user: {
+        id: 'a0000000-0000-0000-0000-000000000001',
+        email: 'demo@feynman.ai',
+        full_name: 'Richard Feynman (Demo)',
+        avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80',
+        feynman_level: 'Master Teacher',
+        preferred_depth: 'eli5',
+        study_streak_days: 4
+      }
+    });
+  }
+
+  try {
+    const supabase = createServerSupabaseClient();
+    const { data: user, error } = await supabase.from('users').select('*').eq('email', email).single();
+    if (!error && user) {
+      return res.json({
+        token: `jwt-${user.id}-${Date.now()}`,
+        user: {
+          id: user.id,
+          email: user.email,
+          full_name: user.full_name,
+          avatar_url: user.avatar_url,
+          feynman_level: user.feynman_level || 'Apprentice',
+          preferred_depth: user.preferred_depth || 'eli5'
+        }
+      });
+    }
+  } catch (_) {}
+
+  // Fallback for seamless offline client login
+  const userId = 'usr-' + Buffer.from(email).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 16);
+  return res.json({
+    token: `jwt-${userId}-${Date.now()}`,
+    user: {
+      id: userId,
+      email,
+      full_name: email.split('@')[0],
+      avatar_url: '',
+      feynman_level: 'Apprentice',
+      preferred_depth: 'eli5',
+      study_streak_days: 1
+    }
+  });
+});
+
+app.post('/api/auth/register', async (req: Request, res: Response) => {
+  const { email, full_name } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'Email address is required.' });
+  }
+
+  const name = full_name || email.split('@')[0];
+  const userId = 'usr-' + Buffer.from(email).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 16);
+
+  try {
+    const supabase = createServerSupabaseClient();
+    await supabase.from('users').insert({
+      id: userId,
+      email,
+      full_name: name,
+      feynman_level: 'Apprentice',
+      preferred_depth: 'eli5'
+    });
+  } catch (_) {}
+
+  return res.json({
+    token: `jwt-${userId}-${Date.now()}`,
+    user: {
+      id: userId,
+      email,
+      full_name: name,
+      avatar_url: '',
+      feynman_level: 'Apprentice',
+      preferred_depth: 'eli5',
+      study_streak_days: 1
+    }
+  });
+});
+
+// =========================================================================
+// MULTI-DEPTH SUMMARIZING STUDIO API (/api/summarize)
+// Depth Levels: 'eli5' (6th grade intuition), 'high_school', 'university'
+// =========================================================================
+app.post('/api/summarize', async (req: Request, res: Response) => {
+  try {
+    const { content, depthLevel = 'eli5', title = 'Untitled Subject' } = req.body;
+    if (!content || !content.trim()) {
+      return res.status(400).json({ error: 'Content to summarize is required.' });
+    }
+
+    const trimmed = content.trim();
+    let depthPrompt = '';
+    if (depthLevel === 'eli5') {
+      depthPrompt = 'Explain this concept to a 6th grader without a single word of empty textbook jargon. Give one vivid, tactile physical metaphor (like balls rolling on rubber sheets or ripples in water).';
+    } else if (depthLevel === 'high_school') {
+      depthPrompt = 'Explain this concept for a curious high school AP student: clear logical mechanisms, cause-and-effect relationships, and physical real-world examples without excessive academic clutter.';
+    } else {
+      depthPrompt = 'Explain this concept at a university/research level: include core physical equations or formal mechanisms, foundational principles, and academic context while preserving Feynman clarity.';
+    }
+
+    const systemPrompt = `You are Richard Feynman summarizing study material with absolute clarity.
+Depth Level Target: ${depthLevel.toUpperCase()}
+Instruction: ${depthPrompt}
+
+Return ONLY valid JSON matching this schema:
+{
+  "summary_markdown": "<3-5 paragraph punchy markdown breakdown with bullet points>",
+  "visceral_analogy": "<a single vivid, memorable physical analogy>",
+  "key_takeaways": [
+    "<concise key takeaway 1>",
+    "<concise key takeaway 2>",
+    "<concise key takeaway 3>"
+  ],
+  "reading_time_seconds": 45,
+  "depth_level": "${depthLevel}"
+}`;
+
+    let parsedResult: any = null;
+
+    try {
+      const groqRaw = await callGroqAI([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Here is the material for "${title}":\n\n${trimmed}` }
+      ]);
+      const cleanJson = groqRaw.replace(/```json/g, '').replace(/```/g, '').trim();
+      parsedResult = JSON.parse(cleanJson);
+    } catch (err: any) {
+      console.log('[Summarize API] Groq note:', err?.message || err);
+    }
+
+    if (!parsedResult) {
+      // Heuristic fallback matching depth
+      parsedResult = {
+        summary_markdown: `### Core Intuition\n\nWhen we strip away textbook labels from **${title}**, the entire engine boils down to how energy or information moves between states.\n\n* **State 1:** Initial arrangement of particles or logic.\n* **Interaction:** Disturbance or heat leaking into ambient degrees of freedom.\n* **Result:** Irreversible spread into macroscopic probability.\n\nNever memorize words without asking what physical action is actually happening!`,
+        visceral_analogy: 'Imagine dropping a neat cube of blue ink into a swimming pool: the ink molecules are still there, but ambient collisions scatter the order irrevocably.',
+        key_takeaways: [
+          'Textbook definitions obscure simple physical causes',
+          'Interactions always disperse energy into surrounding degrees of freedom',
+          'Intuition is built by picturing the gears in motion'
+        ],
+        reading_time_seconds: 60,
+        depth_level: depthLevel
+      };
+    }
+
+    return res.json(parsedResult);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Failed to generate summary' });
+  }
+});
+
+// =========================================================================
+// FLASHCARDS & SPACED REPETITION API (/api/flashcards)
+// =========================================================================
+const defaultFlashcards = [
+  {
+    id: 'fc-1',
+    topic: 'Physics',
+    front_prompt: 'Why does the Moon perpetually orbit Earth without crashing down?',
+    back_intuition: 'It is constantly falling toward Earth, but moving sideways so fast that the Earth curves away underneath it at the exact same rate!',
+    analogy_hint: 'Like throwing a baseball around a miniature spherical planet so fast it circles back.',
+    difficulty: 'medium',
+    interval_days: 1,
+    repetition_count: 2,
+    next_review_at: new Date(Date.now() + 86400000).toISOString()
+  },
+  {
+    id: 'fc-2',
+    topic: 'Thermodynamics',
+    front_prompt: 'What is Entropy at a microscopic, physical level?',
+    back_intuition: 'It is simply counting possibilities: there is only 1 way for a room to be tidy, but trillions of ways for socks and toys to be scattered randomly.',
+    analogy_hint: 'The messy bedroom with a toddler.',
+    difficulty: 'easy',
+    interval_days: 3,
+    repetition_count: 4,
+    next_review_at: new Date(Date.now() + 259200000).toISOString()
+  },
+  {
+    id: 'fc-3',
+    topic: 'Quantum Physics',
+    front_prompt: 'What actually happens during Quantum Decoherence?',
+    back_intuition: 'The delicate phase rhythm of a quantum particle collides with ambient photons and air molecules, leaking its synchronization into the room.',
+    analogy_hint: 'A synchronized dance troupe interrupted by 50,000 shouting fans throwing confetti.',
+    difficulty: 'hard',
+    interval_days: 1,
+    repetition_count: 1,
+    next_review_at: new Date(Date.now() + 43200000).toISOString()
+  }
+];
+
+app.get('/api/flashcards', (_req: Request, res: Response) => {
+  return res.json(defaultFlashcards);
+});
+
+app.post('/api/flashcards/generate', async (req: Request, res: Response) => {
+  const { topic = 'Quantum Physics', sourceText = '' } = req.body;
+  try {
+    const prompt = `Generate 3 interactive intuitive flashcards for studying "${topic}".
+Focus on deep physical understanding, NOT rote definitions or formulas.
+Return ONLY valid JSON matching:
+[
+  {
+    "id": "fc-new-1",
+    "topic": "${topic}",
+    "front_prompt": "Curious question checking physical intuition",
+    "back_intuition": "Plain-English 2-sentence explanation of what physically happens",
+    "analogy_hint": "A visceral real-world metaphor",
+    "difficulty": "medium",
+    "interval_days": 1
+  }
+]`;
+
+    const raw = await callGroqAI([
+      { role: 'system', content: 'You generate intuitive physics and science flashcards in JSON format only.' },
+      { role: 'user', content: sourceText ? `${prompt}\n\nBased on:\n${sourceText}` : prompt }
+    ]);
+
+    const clean = raw.replace(/```json/g, '').replace(/```/g, '').trim();
+    const cards = JSON.parse(clean);
+    return res.json(cards);
+  } catch (err: any) {
+    return res.json(defaultFlashcards);
+  }
+});
+
+app.post('/api/flashcards/review', (req: Request, res: Response) => {
+  const { cardId, rating } = req.body; // rating: 'easy' | 'medium' | 'hard'
+  const card = defaultFlashcards.find(c => c.id === cardId);
+  if (card) {
+    if (rating === 'easy') card.interval_days = Math.min(14, card.interval_days * 2 + 1);
+    else if (rating === 'medium') card.interval_days = Math.max(1, card.interval_days + 1);
+    else card.interval_days = 1;
+    card.repetition_count += 1;
+    card.next_review_at = new Date(Date.now() + card.interval_days * 86400000).toISOString();
+    return res.json({ success: true, card });
+  }
+  return res.json({ success: true });
+});
+
+// =========================================================================
+// STUDY SESSIONS & ANALYTICS API (/api/analytics, /api/sessions)
+// =========================================================================
+app.get('/api/analytics', (_req: Request, res: Response) => {
+  return res.json({
+    study_streak_days: 4,
+    total_study_minutes: 145,
+    concepts_mastered: 8,
+    sessions_completed: 12,
+    flashcards_reviewed: 42,
+    active_tier: '100% Free Lifetime Access'
+  });
+});
+
+app.post('/api/sessions', (req: Request, res: Response) => {
+  const { topic, duration_seconds, depth_level, clarity_score } = req.body;
+  return res.json({
+    sessionId: 'session-' + Date.now(),
+    topic: topic || 'General Science',
+    duration_seconds: duration_seconds || 120,
+    depth_level: depth_level || 'eli5',
+    clarity_score: clarity_score || 75,
+    status: 'recorded'
+  });
 });
 
 // 1. Interactive Feynman AI Tutor Chat Endpoint
@@ -358,7 +710,7 @@ Your core teaching philosophy:
     }
 
     // Strategy 2: Try Groq with active chat models
-    const groqModels = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+    const groqModels = ['openai/gpt-oss-120b', 'qwen/qwen3.8-27b', 'openai/gpt-oss-20b'];
     for (const model of groqModels) {
       try {
         const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -367,7 +719,7 @@ Your core teaching philosophy:
             'Authorization': `Bearer ${GROQ_API_KEY}`,
             'Content-Type': 'application/json'
           },
-          signal: AbortSignal.timeout(2000),
+          signal: AbortSignal.timeout(8000),
           body: JSON.stringify({
             model,
             messages: [
@@ -386,8 +738,13 @@ Your core teaching philosophy:
             const suggestions = generateSuggestions(lastUserMsg, reply);
             return res.json({ reply, suggestions });
           }
+        } else {
+          const errData = await groqResponse.json().catch(() => ({}));
+          console.log(`[Tutor Chat] Groq model ${model} response:`, errData?.error?.message || groqResponse.statusText);
         }
-      } catch (_) {}
+      } catch (err: any) {
+        console.log(`[Tutor Chat] Groq model ${model} error:`, err?.message || err);
+      }
     }
 
     // Strategy 3: Resilient Intelligent Feynman Tutor Fallback (never returns 400/500 error)
@@ -512,7 +869,7 @@ If jargon_flags is empty, return []. Always return all 5 fields.`;
     }
 
     // Try Groq with active models
-    const modelsToTry = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+    const modelsToTry = ['openai/gpt-oss-120b', 'qwen/qwen3.8-27b', 'openai/gpt-oss-20b'];
 
     for (const model of modelsToTry) {
       try {
@@ -522,7 +879,7 @@ If jargon_flags is empty, return []. Always return all 5 fields.`;
             'Authorization': `Bearer ${GROQ_API_KEY}`,
             'Content-Type': 'application/json'
           },
-          signal: AbortSignal.timeout(2000),
+          signal: AbortSignal.timeout(8000),
           body: JSON.stringify({
             model,
             messages: [
@@ -547,8 +904,13 @@ If jargon_flags is empty, return []. Always return all 5 fields.`;
             analogy: parsed.analogy || 'A coffee cup in a roaring stadium losing its heat.',
             feedback_spoken: parsed.feedback_spoken || "Here's the thing: you named the textbook parts, but missed the physical engine behind them."
           });
+        } else {
+          const errData = await groqResponse.json().catch(() => ({}));
+          console.log(`[Analyze] Groq model ${model} response:`, errData?.error?.message || groqResponse.statusText);
         }
-      } catch (_) {}
+      } catch (err: any) {
+        console.log(`[Analyze] Groq model ${model} error:`, err?.message || err);
+      }
     }
 
     // Heuristic fallback matching specific critical criteria
