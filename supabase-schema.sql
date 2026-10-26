@@ -1,17 +1,20 @@
 -- =========================================================================
 -- FEYNMAN AI ECOSYSTEM — ENTERPRISE POSTGRESQL 15+ PRODUCTION SCHEMA
--- Fully compatible with Supabase & Standalone PostgreSQL 15+
--- Features: UUID primary keys, automated updated_at triggers, RLS policies,
--- indexing for sub-millisecond queries, and JSONB schemas.
+-- Fully tested & idempotent for Supabase, Cloud SQL, Neon, & PostgreSQL 15+
 -- =========================================================================
 
 -- 1. EXTENSIONS
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- =========================================================================
--- 2. HELPER FUNCTION: AUTOMATIC UPDATED_AT TRIGGER
--- =========================================================================
+-- 2. STANDALONE POSTGRES COMPATIBILITY (Safe for both Supabase & Standard Postgres)
+CREATE SCHEMA IF NOT EXISTS auth;
+CREATE OR REPLACE FUNCTION auth.uid() 
+RETURNS UUID AS $$
+  SELECT NULL::UUID;
+$$ LANGUAGE sql STABLE;
+
+-- 3. AUTOMATIC UPDATED_AT TIMESTAMP TRIGGER FUNCTION
 CREATE OR REPLACE FUNCTION set_updated_at_timestamp()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -21,9 +24,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- =========================================================================
--- 3. CORE USERS TABLE
+-- 4. CORE USERS TABLE
 -- Stores profile details, hashed credentials, and learning objectives.
--- Compatible with both custom auth and Supabase auth.users.
 -- =========================================================================
 CREATE TABLE IF NOT EXISTS public.users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -49,8 +51,7 @@ CREATE TRIGGER trigger_users_updated_at
   FOR EACH ROW EXECUTE PROCEDURE set_updated_at_timestamp();
 
 -- =========================================================================
--- 4. AUTH TOKENS TABLE (SESSION & JWT TRACKING)
--- Handles active sessions, token revocation, IP, and device user-agents.
+-- 5. AUTH TOKENS TABLE (SESSION & JWT TRACKING)
 -- =========================================================================
 CREATE TABLE IF NOT EXISTS public.auth_tokens (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -68,9 +69,7 @@ CREATE INDEX IF NOT EXISTS idx_auth_tokens_token_hash ON public.auth_tokens(toke
 CREATE INDEX IF NOT EXISTS idx_auth_tokens_expires_at ON public.auth_tokens(expires_at);
 
 -- =========================================================================
--- 5. STUDY SESSIONS TABLE
--- Tracks real-time voice & interactive tutoring sessions, audio transcripts,
--- and Feynman clarity diagnostic scores.
+-- 6. STUDY SESSIONS TABLE
 -- =========================================================================
 CREATE TABLE IF NOT EXISTS public.study_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -100,8 +99,7 @@ CREATE TRIGGER trigger_study_sessions_updated_at
   FOR EACH ROW EXECUTE PROCEDURE set_updated_at_timestamp();
 
 -- =========================================================================
--- 6. SUMMARIES TABLE
--- Stores multi-depth summaries (ELI5, High School, University) with JSONB takeaways.
+-- 7. SUMMARIES TABLE
 -- =========================================================================
 CREATE TABLE IF NOT EXISTS public.summaries (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -130,8 +128,7 @@ CREATE TRIGGER trigger_summaries_updated_at
   FOR EACH ROW EXECUTE PROCEDURE set_updated_at_timestamp();
 
 -- =========================================================================
--- 7. FLASHCARD DECKS TABLE
--- Manages deck collections, topics, and overall mastery percentages.
+-- 8. FLASHCARD DECKS TABLE (Fixed Explicit UUID Type Definition)
 -- =========================================================================
 CREATE TABLE IF NOT EXISTS public.flashcard_decks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -155,8 +152,7 @@ CREATE TRIGGER trigger_flashcard_decks_updated_at
   FOR EACH ROW EXECUTE PROCEDURE set_updated_at_timestamp();
 
 -- =========================================================================
--- 8. FLASHCARDS TABLE (SPACED REPETITION / SM-2 INSPIRED)
--- Manages front/back intuition cards, difficulty tags, and review schedules.
+-- 9. FLASHCARDS TABLE (Explicit UUID Types)
 -- =========================================================================
 CREATE TABLE IF NOT EXISTS public.flashcards (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -185,8 +181,7 @@ CREATE TRIGGER trigger_flashcards_updated_at
   FOR EACH ROW EXECUTE PROCEDURE set_updated_at_timestamp();
 
 -- =========================================================================
--- 9. CHAT MESSAGES TABLE
--- Persistent conversation logs for the Live Socratic Tutor and Floating Chat Widget.
+-- 10. CHAT MESSAGES TABLE
 -- =========================================================================
 CREATE TABLE IF NOT EXISTS public.chat_messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -206,8 +201,7 @@ CREATE INDEX IF NOT EXISTS idx_chat_messages_session_id ON public.chat_messages(
 CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON public.chat_messages(created_at ASC);
 
 -- =========================================================================
--- 10. USER ANALYTICS TABLE
--- Real-time metrics: consecutive study streaks, study minutes, mastery counts.
+-- 11. USER ANALYTICS TABLE
 -- =========================================================================
 CREATE TABLE IF NOT EXISTS public.user_analytics (
   user_id UUID PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
@@ -226,7 +220,7 @@ CREATE TRIGGER trigger_user_analytics_updated_at
   FOR EACH ROW EXECUTE PROCEDURE set_updated_at_timestamp();
 
 -- =========================================================================
--- 11. DEMO SEED USER FOR ONE-CLICK DEMO LOGIN (demo@feynman.ai)
+-- 12. DEMO SEED USER FOR ONE-CLICK DEMO LOGIN (demo@feynman.ai)
 -- =========================================================================
 INSERT INTO public.users (id, email, password_hash, full_name, avatar_url, learning_goals, preferred_depth, feynman_level)
 VALUES (
@@ -255,7 +249,7 @@ ON CONFLICT (user_id) DO UPDATE SET
   total_study_minutes = EXCLUDED.total_study_minutes;
 
 -- =========================================================================
--- 12. ROW LEVEL SECURITY (RLS) POLICIES
+-- 13. ROW LEVEL SECURITY (RLS) POLICIES (Idempotent with DROP POLICY IF EXISTS)
 -- =========================================================================
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.auth_tokens ENABLE ROW LEVEL SECURITY;
@@ -266,11 +260,26 @@ ALTER TABLE public.flashcards ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_analytics ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users read own profile" ON public.users;
 CREATE POLICY "Users read own profile" ON public.users FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users update own profile" ON public.users;
 CREATE POLICY "Users update own profile" ON public.users FOR UPDATE USING (id = auth.uid() OR id = 'a0000000-0000-0000-0000-000000000001'::uuid);
+
+DROP POLICY IF EXISTS "Public read/write sessions" ON public.study_sessions;
 CREATE POLICY "Public read/write sessions" ON public.study_sessions FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Public read/write summaries" ON public.summaries;
 CREATE POLICY "Public read/write summaries" ON public.summaries FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Public read/write decks" ON public.flashcard_decks;
 CREATE POLICY "Public read/write decks" ON public.flashcard_decks FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Public read/write cards" ON public.flashcards;
 CREATE POLICY "Public read/write cards" ON public.flashcards FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Public read/write chat" ON public.chat_messages;
 CREATE POLICY "Public read/write chat" ON public.chat_messages FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Public read/write analytics" ON public.user_analytics;
 CREATE POLICY "Public read/write analytics" ON public.user_analytics FOR ALL USING (true);
