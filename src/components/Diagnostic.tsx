@@ -15,6 +15,7 @@ interface DiagnosticProps {
   perspectives?: Record<string, any>;
   hasNextDueConcept?: boolean;
   onNextConcept?: () => void;
+  onDiscussWithTutor?: (gapText: string) => void;
 }
 
 export const Diagnostic: React.FC<DiagnosticProps> = ({
@@ -29,6 +30,7 @@ export const Diagnostic: React.FC<DiagnosticProps> = ({
   perspectives,
   hasNextDueConcept = false,
   onNextConcept,
+  onDiscussWithTutor,
 }) => {
   const [animatedScore, setAnimatedScore] = useState(0);
   const [isPlayingAnalogy, setIsPlayingAnalogy] = useState(false);
@@ -203,6 +205,15 @@ export const Diagnostic: React.FC<DiagnosticProps> = ({
           <h2 className="text-[10px] uppercase tracking-widest font-light text-zinc-400">The Gap</h2>
         </div>
         <p className="text-xs font-light text-zinc-200 leading-relaxed">{diagnostic.gap}</p>
+        {onDiscussWithTutor && (
+          <button
+            onClick={() => onDiscussWithTutor(diagnostic.gap)}
+            className="mt-1 self-start py-1.5 px-3 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-[11px] font-medium flex items-center gap-1.5 transition-colors"
+          >
+            <span>💬 Ask Feynman Tutor to break down this gap</span>
+            <span>→</span>
+          </button>
+        )}
       </div>
 
       {/* 3. TRY THIS ANALOGY CARD */}
@@ -277,6 +288,15 @@ export const Diagnostic: React.FC<DiagnosticProps> = ({
             {isSaved ? '✓ Saved to Library' : 'Save to Library'}
           </button>
         </div>
+
+        {onDiscussWithTutor && (
+          <button
+            onClick={() => onDiscussWithTutor(diagnostic.gap)}
+            className="w-full py-2.5 px-4 rounded-xl text-xs font-light bg-indigo-950/40 hover:bg-indigo-900/50 text-indigo-300 border border-indigo-800/60 transition-colors flex items-center justify-center gap-1.5"
+          >
+            <span>💬 Discuss with Feynman Tutor</span>
+          </button>
+        )}
 
         {/* Next Concept button (ONLY if another due concept exists) */}
         {hasNextDueConcept && onNextConcept && (

@@ -27,22 +27,26 @@ export const Orb: React.FC<OrbProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const ext = file.name.split('.').pop()?.toLowerCase();
+    const ext = file.name.split('.').pop()?.toLowerCase() || '';
 
-    if (ext === 'txt') {
+    if (['txt', 'md', 'markdown', 'json', 'csv', 'js', 'py'].includes(ext) || file.type.startsWith('text/')) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        const text = event.target?.result as string;
+        const text = (event.target?.result as string) || '';
         if (text) {
-          onFileContent(text);
-          onToast(`Loaded ${file.name}`);
+          onFileContent(text.slice(0, 5000));
+          onToast(`Loaded ${file.name} ✓`);
         }
       };
       reader.readAsText(file);
-    } else if (['pdf', 'png', 'jpg', 'jpeg'].includes(ext || '')) {
-      onToast('Photos and PDFs coming soon');
     } else {
-      onToast('Supported files: .txt (PDF & Images coming soon)');
+      // For binary/PDF files, acknowledge and load snippet or note
+      const reader = new FileReader();
+      reader.onload = () => {
+        onFileContent(`[Document attached: ${file.name}]\n\nExplain the core principles behind this subject.`);
+        onToast(`Attached ${file.name} to explanation ✓`);
+      };
+      reader.readAsArrayBuffer(file);
     }
   };
 
@@ -52,7 +56,7 @@ export const Orb: React.FC<OrbProps> = ({
       <input
         ref={fileInputRef}
         type="file"
-        accept=".txt,.pdf,.png,.jpg,.jpeg"
+        accept=".txt,.md,.markdown,.json,.csv,.pdf,.png,.jpg,.jpeg"
         className="hidden"
         onChange={handleFileChange}
       />

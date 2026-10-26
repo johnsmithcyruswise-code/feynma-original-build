@@ -7,6 +7,7 @@ interface HomeScreenProps {
   queueItems: ReviewQueueItem[];
   onNewExplanation: () => void;
   onBrowseLibrary: () => void;
+  onOpenTutor: () => void;
   onSelectConcept: (concept: ConceptItem) => void;
   onRetestConcept: (concept: ConceptItem) => void;
 }
@@ -17,6 +18,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   queueItems,
   onNewExplanation,
   onBrowseLibrary,
+  onOpenTutor,
   onSelectConcept,
   onRetestConcept,
 }) => {
@@ -145,6 +147,32 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </button>
         </div>
       )}
+
+      {/* INTERACTIVE FEYNMAN AI TUTOR BANNER */}
+      <div className="bg-[#0C0C10] border border-indigo-500/20 hover:border-indigo-500/40 rounded-2xl p-4 flex items-center justify-between transition-all">
+        <div className="flex items-center gap-3 min-w-0 pr-2">
+          <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-base shrink-0">
+            💬
+          </div>
+          <div className="truncate">
+            <div className="flex items-center gap-2">
+              <h3 className="text-xs font-medium text-zinc-100">Feynman AI Tutor</h3>
+              <span className="text-[9px] uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded font-mono">
+                Interactive
+              </span>
+            </div>
+            <p className="text-[11px] text-zinc-400 font-light truncate">
+              Ask anything, chat with voice, or attach notes
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={onOpenTutor}
+          className="py-2 px-3 rounded-xl text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition-colors shrink-0"
+        >
+          Talk Now
+        </button>
+      </div>
 
       {/* "DUE TODAY" SECTION (ONLY IF AT LEAST 1 DUE ROW EXISTS) */}
       {hasDue && (

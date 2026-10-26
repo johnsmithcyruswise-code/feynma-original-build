@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useTransition } from 'react';
 import { HomeScreen } from './components/HomeScreen';
+import { TutorView } from './components/TutorView';
 import { Orb } from './components/Orb';
 import { TextInput } from './components/TextInput';
 import { Diagnostic } from './components/Diagnostic';
@@ -30,10 +31,11 @@ import {
 import { analyzeExplanation, DiagnosticResult } from './lib/groq';
 import { supabase } from './utils/supabase/client';
 
-type Screen = 'home' | 'live' | 'diagnostic' | 'library';
+type Screen = 'home' | 'tutor' | 'live' | 'diagnostic' | 'library';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
+  const [tutorContext, setTutorContext] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
 
   // Real data state
@@ -492,7 +494,7 @@ export default function App() {
       clarity_score: latestProbe?.clarity_score || concept.clarity_score || 50,
       jargon_flags: latestProbe?.flagged_jargon || (concept.jargon_crutches as any) || [],
       gap: concept.gap_note || 'Re-test your understanding without textbook jargon.',
-      analogy: latestProbe?.recommendation || concept.analogyQuote || 'Test again to generate an intuitive physical analogy.',
+      analogy: latestProbe?.recommendation || concept.perspectives?.eli12?.analogyText || 'Test again to generate an intuitive physical analogy.',
       feedback_spoken: '',
     };
 
@@ -621,12 +623,31 @@ export default function App() {
               setCurrentScreen('live');
             }}
             onBrowseLibrary={() => setCurrentScreen('library')}
+            onOpenTutor={() => {
+              setTutorContext(null);
+              setCurrentScreen('tutor');
+            }}
             onSelectConcept={handleSelectConcept}
             onRetestConcept={handleRetestConcept}
           />
         )}
 
-        {/* VIEW 2: LIVE */}
+        {/* VIEW 2: FEYNMAN AI TUTOR (Askable, Voice-Optional, File Upload) */}
+        {currentScreen === 'tutor' && (
+          <TutorView
+            onSwitchToTest={(prefillConcept) => {
+              if (prefillConcept) {
+                setExplanation(prefillConcept);
+              }
+              setCurrentScreen('live');
+            }}
+            selectedVoice={selectedVoice}
+            onToast={showToast}
+            initialContext={tutorContext}
+          />
+        )}
+
+        {/* VIEW 3: LIVE (Feynman Challenge / Diagnostic Testing) */}
         {currentScreen === 'live' && (
           <div className="flex flex-col gap-2">
             <Orb
@@ -666,7 +687,7 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW 3: DIAGNOSTIC */}
+        {/* VIEW 4: DIAGNOSTIC */}
         {currentScreen === 'diagnostic' && (
           <Diagnostic
             diagnostic={diagnostic}
@@ -680,10 +701,14 @@ export default function App() {
             perspectives={activeConcept?.perspectives}
             hasNextDueConcept={hasNextDueConcept}
             onNextConcept={handleNextConcept}
+            onDiscussWithTutor={(gapText) => {
+              setTutorContext(gapText);
+              setCurrentScreen('tutor');
+            }}
           />
         )}
 
-        {/* VIEW 4: LIBRARY */}
+        {/* VIEW 5: LIBRARY */}
         {currentScreen === 'library' && (
           <Library
             concepts={concepts}
@@ -729,17 +754,30 @@ export default function App() {
         </div>
       )}
 
-      {/* Fixed Bottom Navigation (3 Buttons: Home, ＋ New, Library) */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#050507]/95 backdrop-blur-md border-t border-zinc-900/80 py-2.5">
-        <div className="w-full max-w-lg mx-auto px-6 flex items-center justify-around">
+      {/* Fixed Bottom Navigation (4 Buttons: Home, Tutor, Test, Library) */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#050507]/95 backdrop-blur-md border-t border-zinc-900/80 py-2">
+        <div className="w-full max-w-lg mx-auto px-4 flex items-center justify-around">
           <button
             onClick={() => setCurrentScreen('home')}
-            className={`flex flex-col items-center gap-1 text-[11px] font-light transition-colors ${
-              currentScreen === 'home' ? 'text-indigo-400' : 'text-zinc-500 hover:text-zinc-300'
+            className={`flex flex-col items-center gap-1 text-[11px] font-light transition-colors py-1 px-2 ${
+              currentScreen === 'home' ? 'text-indigo-400 font-medium' : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >
             <span className="text-sm">🏠</span>
             <span>Home</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setTutorContext(null);
+              setCurrentScreen('tutor');
+            }}
+            className={`flex flex-col items-center gap-1 text-[11px] font-light transition-colors py-1 px-2 ${
+              currentScreen === 'tutor' ? 'text-indigo-400 font-medium' : 'text-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            <span className="text-sm">💬</span>
+            <span>Tutor</span>
           </button>
 
           <button
@@ -751,18 +789,18 @@ export default function App() {
               setIsSaved(false);
               setCurrentScreen('live');
             }}
-            className={`flex flex-col items-center gap-1 text-[11px] font-light transition-colors ${
-              currentScreen === 'live' ? 'text-indigo-400' : 'text-zinc-500 hover:text-zinc-300'
+            className={`flex flex-col items-center gap-1 text-[11px] font-light transition-colors py-1 px-2 ${
+              currentScreen === 'live' ? 'text-indigo-400 font-medium' : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >
-            <span className="text-sm">🎙️</span>
-            <span>＋ New</span>
+            <span className="text-sm">⚡</span>
+            <span>Test</span>
           </button>
 
           <button
             onClick={() => setCurrentScreen('library')}
-            className={`flex flex-col items-center gap-1 text-[11px] font-light transition-colors ${
-              currentScreen === 'library' ? 'text-indigo-400' : 'text-zinc-500 hover:text-zinc-300'
+            className={`flex flex-col items-center gap-1 text-[11px] font-light transition-colors py-1 px-2 ${
+              currentScreen === 'library' ? 'text-indigo-400 font-medium' : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >
             <span className="text-sm">📚</span>

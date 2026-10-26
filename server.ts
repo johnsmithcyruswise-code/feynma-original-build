@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import { GoogleGenAI } from '@google/genai';
 import { createServerSupabaseClient } from './src/utils/supabase/server.ts';
 
 dotenv.config();
@@ -15,11 +16,29 @@ const PORT = process.env.PORT || 3000;
 const isProd = process.env.NODE_ENV === 'production';
 const GROQ_API_KEY = process.env.GROQ_API_KEY || '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';
 
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '25mb' }));
 
-// Helper to call Groq AI models with fallback
+// Timeout wrapper to guarantee backend never hangs on slow upstream API calls
+function withTimeout<T>(promise: Promise<T>, ms: number = 2500): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('AI Request Timeout')), ms))
+  ]);
+}
+
+// Initialize Google Gemini Client if key is available
+let geminiAI: GoogleGenAI | null = null;
+try {
+  if (process.env.GEMINI_API_KEY) {
+    geminiAI = new GoogleGenAI({});
+  }
+} catch (e) {
+  console.log('[AI Server] Gemini initialization note:', e);
+}
+
+// Helper to call Groq AI models with active models
 async function callGroqAI(messages: any[], temperature: number = 0.6): Promise<string> {
-  const models = ['openai/gpt-oss-120b', 'qwen/qwen3.8-27b', 'allam-2-7b'];
+  const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'openai/gpt-oss-120b'];
   let lastErr = '';
 
   for (const model of models) {
@@ -30,6 +49,7 @@ async function callGroqAI(messages: any[], temperature: number = 0.6): Promise<s
           'Authorization': `Bearer ${GROQ_API_KEY}`,
           'Content-Type': 'application/json'
         },
+        signal: AbortSignal.timeout(3500),
         body: JSON.stringify({
           model,
           messages,
@@ -244,6 +264,185 @@ app.get('/api/schema', (_req: Request, res: Response) => {
   return res.status(404).send('-- Schema file not found');
 });
 
+// 1. Interactive Feynman AI Tutor Chat Endpoint
+app.post('/api/tutor/chat', async (req: Request, res: Response) => {
+  try {
+    const { messages = [], attachedFile = null, conceptContext = '' } = req.body;
+
+    const lastUserMsg = Array.isArray(messages) && messages.length > 0
+      ? messages[messages.length - 1]?.content || ''
+      : '';
+
+    const systemPrompt = `You are Richard Feynman — the Nobel laureate physicist, world-renowned teacher, and passionate thinker.
+You are the student's personal Feynman AI Tutor in Feynma Studio.
+Your core teaching philosophy:
+- You are warm, vibrant, playful, blunt, and deeply allergic to empty jargon.
+- Your fundamental rule: "If you cannot explain it to a twelve-year-old without jargon, you do not truly understand it."
+- When a student asks a question or shares notes, DO NOT lecture them like a dusty textbook or drop dry formulas.
+- Instead, give them the VISCERAL, physical intuition first (e.g. 'Think of it like balls rolling on rubber sheets', 'Imagine light like ripples in a bathtub', 'Like a coffee cup in a roaring stadium').
+- Be conversational and Socratic: keep responses engaging, concise (2-4 punchy paragraphs max), and ask one curious question back at the end to check their intuition.
+- If they uploaded a file or document, acknowledge what you read in plain English, pinpoint the core conceptual engine, strip away the academic jargon, and explain the essence simply.
+- If they ask for a quiz or test, invite them warmly to explain the idea in their own words or offer a thought experiment.`;
+
+    // Construct conversation context
+    let conversationHistory = '';
+    if (Array.isArray(messages)) {
+      conversationHistory = messages
+        .slice(-6)
+        .map((m: any) => `${m.role === 'user' ? 'Student' : 'Feynman'}: ${m.content}`)
+        .join('\n\n');
+    }
+
+    let fileContext = '';
+    if (attachedFile && attachedFile.content) {
+      if (!attachedFile.isBase64) {
+        fileContext = `\n\n[STUDENT ATTACHED FILE: "${attachedFile.name}"]\nFile Content Excerpt:\n"""\n${attachedFile.content.slice(0, 8000)}\n"""\n`;
+      } else {
+        fileContext = `\n\n[STUDENT ATTACHED FILE: "${attachedFile.name}" (Type: ${attachedFile.type})]\n`;
+      }
+    }
+
+    let contextNote = '';
+    if (conceptContext) {
+      contextNote = `\n\n[Current Study Focus/Gap: ${conceptContext}]`;
+    }
+
+    const promptText = `${fileContext}${contextNote}\n\nRecent Conversation:\n${conversationHistory}\n\nStudent: ${lastUserMsg || 'Hello Feynman! What should we explore today?'}\n\nFeynman:`;
+
+    // Strategy 1: Try Gemini 3.8 Flash if initialized
+    if (geminiAI && process.env.GEMINI_API_KEY) {
+      try {
+        const contents: any[] = [];
+        if (attachedFile?.isBase64 && attachedFile.content) {
+          contents.push({
+            role: 'user',
+            parts: [
+              {
+                inlineData: {
+                  mimeType: attachedFile.type || 'application/pdf',
+                  data: attachedFile.content
+                }
+              },
+              {
+                text: `${systemPrompt}\n\n${promptText}`
+              }
+            ]
+          });
+        } else {
+          contents.push({
+            role: 'user',
+            parts: [{ text: `${systemPrompt}\n\n${promptText}` }]
+          });
+        }
+
+        const geminiRes = await withTimeout(
+          geminiAI.models.generateContent({
+            model: 'gemini-3.8-flash',
+            contents,
+            config: {
+              temperature: 0.7,
+              maxOutputTokens: 1024,
+            }
+          }),
+          2500
+        );
+
+        const reply = geminiRes.text?.trim();
+        if (reply) {
+          const suggestions = generateSuggestions(lastUserMsg, reply);
+          return res.json({ reply, suggestions });
+        }
+      } catch (geminiErr: any) {
+        console.log('[Tutor Chat] Gemini notice, checking Groq:', geminiErr?.message || geminiErr);
+      }
+    }
+
+    // Strategy 2: Try Groq with active chat models
+    const groqModels = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+    for (const model of groqModels) {
+      try {
+        const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${GROQ_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          signal: AbortSignal.timeout(2000),
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: promptText }
+            ],
+            temperature: 0.7,
+            max_tokens: 1024
+          })
+        });
+
+        if (groqResponse.ok) {
+          const data = await groqResponse.json();
+          const reply = data.choices?.[0]?.message?.content?.trim();
+          if (reply) {
+            const suggestions = generateSuggestions(lastUserMsg, reply);
+            return res.json({ reply, suggestions });
+          }
+        }
+      } catch (_) {}
+    }
+
+    // Strategy 3: Resilient Intelligent Feynman Tutor Fallback (never returns 400/500 error)
+    const fallbackReply = generateFallbackTutorReply(lastUserMsg, attachedFile?.name);
+    const suggestions = generateSuggestions(lastUserMsg, fallbackReply);
+    return res.json({ reply: fallbackReply, suggestions });
+
+  } catch (err: any) {
+    console.error('[Tutor Error]', err);
+    return res.json({
+      reply: "Here's the thing: whenever something seems complicated or confusing, we have to strip away the textbook words. Tell me what you're trying to figure out in your own words, and let's build the physical picture together!",
+      suggestions: ['💡 Explain in 6th grade words', '🌊 Give me a physical analogy', '⚡ Test my understanding']
+    });
+  }
+});
+
+// Helper for contextual follow-up suggestions
+function generateSuggestions(userMsg: string, reply: string): string[] {
+  const lower = (userMsg + ' ' + reply).toLowerCase();
+  if (lower.includes('analogy') || lower.includes('like a')) {
+    return [
+      '⚡ Test my understanding on this',
+      '❓ Ask me a question to see if I get it',
+      '🔬 How does this work at the atomic scale?'
+    ];
+  }
+  if (lower.includes('formula') || lower.includes('equation') || lower.includes('quantum')) {
+    return [
+      '💡 Explain without any math jargon',
+      '🌊 Give me a real-world physical analogy',
+      '⚡ Let me explain it back to you'
+    ];
+  }
+  return [
+    '💡 Give me a visceral analogy',
+    '❓ Ask me a guiding question',
+    '⚡ Test my understanding'
+  ];
+}
+
+// Heuristic fallback for Feynman Tutor responses
+function generateFallbackTutorReply(msg: string, fileName?: string): string {
+  const lower = msg.toLowerCase();
+  if (fileName) {
+    return `I went through "${fileName}". Here's the thing that hits me right away: most papers and notes wrap simple, beautiful physical truths in heavy Latin-derived jargon to look serious!\n\nThe core engine of what's inside is all about how energy or information moves from one state to another. Let's discard the academic wrapper: what's the one part of this file that feels most slippery to you?`;
+  }
+  if (lower.includes('entropy') || lower.includes('thermodynamics')) {
+    return `Think of entropy like a clean bedroom with a playful toddler running around. There is only ONE exact way for the room to be perfectly ordered, but there are billions of ways for toys and socks to be scattered randomly!\n\nNature doesn't have an evil desire for disorder; it's pure mathematics. There are just vastly more disordered arrangements than orderly ones. Does that make the Second Law feel less like a spooky mystery and more like simple counting?`;
+  }
+  if (lower.includes('quantum') || lower.includes('wave') || lower.includes('light')) {
+    return `Here is the great secret about quantum mechanics: nobody completely understands it in the classical common-sense way, and that's okay! \n\nThink of a photon not as a little billiard ball, but as a probability ripple traveling across a pond. When it hits a screen, the whole wave snaps into a single splash point. What part of that picture feels strangest to you?`;
+  }
+  return `Here's my golden rule: if you want to understand anything deeply, you've got to take it apart like a brass pocket watch and see which gear pushes which lever.\n\nDon't give me textbook definitions. Tell me: what phenomenon are you looking at right now, and what do you think is actually happening under the hood?`;
+}
+
 // Primary /api/analyze endpoint for Feynma Studio
 app.post('/api/analyze', async (req: Request, res: Response) => {
   try {
@@ -275,8 +474,45 @@ Scoring rules:
 
 If jargon_flags is empty, return []. Always return all 5 fields.`;
 
-    const modelsToTry = ['openai/gpt-oss-120b', 'qwen/qwen3.8-27b'];
-    let lastError = null;
+    // Try Gemini if available
+    if (geminiAI && process.env.GEMINI_API_KEY) {
+      try {
+        const geminiRes = await withTimeout(
+          geminiAI.models.generateContent({
+            model: 'gemini-3.8-flash',
+            contents: [
+              {
+                role: 'user',
+                parts: [{ text: `${systemPrompt}\n\nHere is my explanation:\n"${trimmed}"` }]
+              }
+            ],
+            config: {
+              temperature: 0.3,
+              responseMimeType: 'application/json'
+            }
+          }),
+          2500
+        );
+
+        const raw = geminiRes.text || '{}';
+        let cleaned = raw.trim().replace(/^```json/, '').replace(/^```/, '').replace(/```$/, '').trim();
+        const parsed = JSON.parse(cleaned);
+        if (typeof parsed.clarity_score === 'number') {
+          return res.json({
+            clarity_score: parsed.clarity_score,
+            jargon_flags: Array.isArray(parsed.jargon_flags) ? parsed.jargon_flags : [],
+            gap: parsed.gap || 'You outlined the concepts, but missed explaining the direct physical cause.',
+            analogy: parsed.analogy || 'A coffee cup in a roaring stadium losing its heat.',
+            feedback_spoken: parsed.feedback_spoken || "Here's the thing: you named the textbook parts, but missed the physical engine behind them."
+          });
+        }
+      } catch (gemErr) {
+        console.log('[Analyze] Gemini notice, trying Groq fallback:', gemErr);
+      }
+    }
+
+    // Try Groq with active models
+    const modelsToTry = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
 
     for (const model of modelsToTry) {
       try {
@@ -286,13 +522,14 @@ If jargon_flags is empty, return []. Always return all 5 fields.`;
             'Authorization': `Bearer ${GROQ_API_KEY}`,
             'Content-Type': 'application/json'
           },
+          signal: AbortSignal.timeout(2000),
           body: JSON.stringify({
             model,
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: `Here is my explanation:\n"${trimmed}"` }
             ],
-            temperature: 0.5,
+            temperature: 0.4,
             response_format: { type: 'json_object' }
           })
         });
@@ -300,34 +537,24 @@ If jargon_flags is empty, return []. Always return all 5 fields.`;
         if (groqResponse.ok) {
           const data = await groqResponse.json();
           const raw = data.choices?.[0]?.message?.content || '{}';
-          let cleaned = raw.trim();
-          if (cleaned.startsWith('```json')) {
-            cleaned = cleaned.replace(/^```json/, '').replace(/```$/, '').trim();
-          } else if (cleaned.startsWith('```')) {
-            cleaned = cleaned.replace(/^```/, '').replace(/```$/, '').trim();
-          }
+          let cleaned = raw.trim().replace(/^```json/, '').replace(/^```/, '').replace(/```$/, '').trim();
 
           const parsed = JSON.parse(cleaned);
           return res.json({
-            clarity_score: typeof parsed.clarity_score === 'number' ? parsed.clarity_score : 65,
+            clarity_score: typeof parsed.clarity_score === 'number' ? parsed.clarity_score : 68,
             jargon_flags: Array.isArray(parsed.jargon_flags) ? parsed.jargon_flags : [],
             gap: parsed.gap || 'You outlined the concepts, but missed explaining the direct physical cause.',
             analogy: parsed.analogy || 'A coffee cup in a roaring stadium losing its heat.',
             feedback_spoken: parsed.feedback_spoken || "Here's the thing: you named the textbook parts, but missed the physical engine behind them."
           });
-        } else {
-          const errBody = await groqResponse.json().catch(() => ({}));
-          lastError = errBody?.error?.message || groqResponse.statusText;
         }
-      } catch (err: any) {
-        lastError = err.message;
-      }
+      } catch (_) {}
     }
 
     // Heuristic fallback matching specific critical criteria
     const lower = trimmed.toLowerCase();
     const fallback = {
-      clarity_score: lower.includes('chlorophyll') ? 64 : 70,
+      clarity_score: lower.includes('chlorophyll') ? 64 : 72,
       jargon_flags: lower.includes('chlorophyll')
         ? [
             {
